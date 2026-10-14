@@ -19,8 +19,8 @@ Downloads a 100 MiB TinyStories corpus and skips the download when it already ex
 Download a larger 1 GiB corpus:
 
 ```bash
-./scripts/download_data.sh \\
-  --min-bytes $((1024 * 1024 * 1024)) \\
+./scripts/download_data.sh \
+  --min-bytes $((1000 * 1024 * 1024)) \
   --max-bytes $((1024 * 1024 * 1024))
 ```
 
