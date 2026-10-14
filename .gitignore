@@ -1,0 +1,52 @@
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Packaging/build artifacts
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+*.egg-info/
+pip-wheel-metadata/
+share/python-wheels/
+
+# Test, coverage, and type-checker artifacts
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.mypy_cache/
+.pyre/
+.ruff_cache/
+
+# Editors and OS files
+.DS_Store
+.vscode/
+.idea/
+
+# Model outputs and experiment artifacts
+checkpoints/
+*.ckpt
+*.pt
+*.pth
+*.safetensors
+outputs/
+wandb/
+tensorboard/
+
+# Local environment/configuration files
+.env
+.env.*
+!.env.example
