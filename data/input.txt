@@ -1,0 +1,9 @@
+Deep learning models learn patterns by reading many examples. This small corpus is only a runnable starter dataset for the from-scratch language model. Replace it with your own text for meaningful training.
+
+We begin with tokenization, embeddings, and standard causal multi-head attention. Each token can attend to the tokens before it, but never to tokens that appear later in the sequence. The model predicts the next token and improves by minimizing cross entropy loss.
+
+DeepSeek is a family of language models. In this first implementation we focus on the architecture before multi-head latent attention, rotary position embeddings, mixture of experts, and other later improvements. Keep experiments small while checking loss, perplexity, accuracy, gradient norms, and throughput.
+
+Training repeatedly samples a context window from the text. The input is a sequence of token ids, and the target is the same sequence shifted one position to the right. A causal mask makes the prediction problem well-defined. TensorBoard records the measurements needed to understand whether optimization is stable and whether the model is learning.
+
+The best way to learn is to make each component visible. Inspect the tokenizer vocabulary, the shape of the embeddings, the attention weights, the logits, and the loss. Then change one configuration value at a time and compare runs using TensorBoard.

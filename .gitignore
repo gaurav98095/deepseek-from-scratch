@@ -45,6 +45,7 @@ checkpoints/
 outputs/
 wandb/
 tensorboard/
+events.out.tfevents.*
 
 # Local environment/configuration files
 .env
