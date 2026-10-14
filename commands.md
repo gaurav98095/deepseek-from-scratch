@@ -27,22 +27,22 @@ Download a larger 1 GiB corpus:
 ## Train
 
 ```bash
-./scripts/run.sh \\
-  --data data/tinystories-train.txt \\
-  --steps 1000 \\
+./scripts/run.sh \
+  --data data/tinystories-train.txt \
+  --steps 1000 \
   --run-dir runs/experiment-1
 ```
 
 Useful overrides:
 
 ```bash
-./scripts/run.sh \\
-  --batch-size 16 \\
-  --context-length 128 \\
-  --embedding-dim 128 \\
-  --num-layers 4 \\
-  --num-heads 4 \\
-  --learning-rate 3e-4 \\
+./scripts/run.sh \
+  --batch-size 16 \
+  --context-length 128 \
+  --embedding-dim 128 \
+  --num-layers 4 \
+  --num-heads 4 \
+  --learning-rate 3e-4 \
   --eval-interval 100
 ```
 
@@ -50,7 +50,7 @@ Resume from the latest checkpoint:
 
 ```bash
 ./scripts/run.sh \\
-  --resume runs/experiment-1/last.pt \\
+  --resume runs/experiment-1/last.pt \
   --run-dir runs/experiment-1
 ```
 
@@ -67,21 +67,21 @@ Logged metrics include training and validation loss, perplexity, token accuracy,
 ## Inference
 
 ```bash
-./scripts/infer.sh \\
-  --checkpoint runs/experiment-1/last.pt \\
-  --prompt "Once upon a time" \\
-  --max-new-tokens 120 \\
-  --temperature 0.8 \\
-  --top-k 50 \\
+./scripts/infer.sh \
+  --checkpoint runs/experiment-1/last.pt \
+  --prompt "Once upon a time" \
+  --max-new-tokens 120 \
+  --temperature 0.8 \
+  --top-k 50 \
   --top-p 0.95
 ```
 
 Greedy decoding:
 
 ```bash
-./scripts/infer.sh \\
-  --checkpoint runs/experiment-1/last.pt \\
-  --prompt "Once upon a time" \\
+./scripts/infer.sh \
+  --checkpoint runs/experiment-1/last.pt \
+  --prompt "Once upon a time" \
   --temperature 0
 ```
 
