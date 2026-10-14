@@ -39,7 +39,7 @@ To use the local starter corpus instead, pass `--data data/input.txt`. To force 
 Train with:
 
 ```bash
-chmod +x run.sh
+chmod +x scripts/run.sh
 ./scripts/run.sh --data data/tinystories-train.txt --steps 1000 --run-dir runs/experiment-1
 ```
 

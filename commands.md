@@ -49,9 +49,15 @@ Useful overrides:
 Resume from the latest checkpoint:
 
 ```bash
-./scripts/run.sh \\
+./scripts/run.sh \
   --resume runs/experiment-1/last.pt \
   --run-dir runs/experiment-1
+```
+
+Equivalent one-line command:
+
+```bash
+./scripts/run.sh --data data/tinystories-train.txt --steps 1000 --run-dir runs/experiment-1
 ```
 
 ## TensorBoard
