@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 LOGGER = logging.getLogger(__name__)
+# Keep the upstream dataset name in one place for reproducible downloads.
 DATASET_NAME = "roneneldan/TinyStories"
 
 
@@ -33,6 +34,7 @@ class PreparationConfig:
 def load_dataset(*args: Any, **kwargs: Any) -> Any:
     """Load through Hugging Face lazily, keeping offline helpers importable."""
 
+    # Lazy import lets offline text-normalization tests run without the package.
     from datasets import load_dataset as huggingface_load_dataset
 
     return huggingface_load_dataset(*args, **kwargs)
@@ -42,6 +44,7 @@ def _progress(iterable: Iterable[dict[str, Any]], *, desc: str) -> Iterable[dict
     """Use tqdm when installed; keep the transformation easy to unit test."""
 
     try:
+        # tqdm is optional for programmatic use; the pipeline still works without it.
         from tqdm import tqdm
     except ImportError:
         return iterable
@@ -52,16 +55,19 @@ def _story_records(dataset: Iterable[dict[str, Any]], config: PreparationConfig)
     """Yield cleaned records while preserving source order."""
 
     emitted = 0
+    # enumerate gives warnings a source-row number while preserving source order.
     for source_index, row in enumerate(dataset):
         story = row.get("text")
         if not isinstance(story, str):
             LOGGER.warning("Skipping row %d: expected a string in the 'text' field", source_index)
             continue
 
+        # Normalize line endings and outer whitespace before writing stable JSONL.
         story = story.replace("\r\n", "\n").replace("\r", "\n").strip()
         if len(story) < config.min_characters:
             continue
 
+        # IDs are assigned after filtering so output IDs are contiguous.
         yield {"id": emitted, "text": story}
         emitted += 1
         if config.max_stories is not None and emitted >= config.max_stories:
@@ -80,6 +86,7 @@ def prepare_dataset(config: PreparationConfig) -> int:
     if config.min_characters < 0:
         raise ValueError("min_characters cannot be negative")
 
+    # Streaming prevents the full dataset from being materialized in memory.
     LOGGER.info("Loading %s (%s) in streaming mode", DATASET_NAME, config.split)
     dataset = load_dataset(
         DATASET_NAME,
@@ -88,9 +95,11 @@ def prepare_dataset(config: PreparationConfig) -> int:
         cache_dir=str(config.cache_dir) if config.cache_dir else None,
     )
 
+    # Create only the output directory; the dataset cache remains separate.
     config.output.parent.mkdir(parents=True, exist_ok=True)
     records = _story_records(dataset, config)
     written = 0
+    # JSONL allows later stages to process stories incrementally.
     with config.output.open("w", encoding="utf-8") as output_file:
         for record in _progress(records, desc="Preparing stories"):
             output_file.write(json.dumps(record, ensure_ascii=False) + "\n")
@@ -112,6 +121,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    # The CLI converts user flags into the typed preparation configuration.
     parser = _build_parser()
     args = parser.parse_args()
     logging.basicConfig(level=getattr(logging, args.log_level), format="%(levelname)s %(message)s")

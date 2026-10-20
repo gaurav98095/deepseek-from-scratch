@@ -2,6 +2,8 @@
 datasets>=2.18,<5
 tqdm>=4.66,<5
 
+# Model implementation
+torch>=2.2,<3
+
 # Development and tests
 pytest>=8.0,<9
-
