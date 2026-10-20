@@ -27,6 +27,14 @@ The runnable training and inference pipeline is documented in
 current-scaffold configuration by default so the pipeline can be started
 locally and then used to generate text from a saved checkpoint.
 
+For a tensor-by-tensor walkthrough of the full reference dimensions, one
+decoder block, repeated layers, shapes, and parameter calculations, see
+[`understanding/01-deepseek-v3-flow.md`](understanding/01-deepseek-v3-flow.md).
+
+For the normal multi-head-attention KV-cache formulas, context-length growth,
+memory tables, and chart, see
+[`understanding/02-compute-kv-cache.md`](understanding/02-compute-kv-cache.md).
+
 See [`commands.md`](commands.md) for the complete command reference.
 
 The [Makefile](Makefile) provides repeatable `dev`, `prod`, numbered-step,
