@@ -105,6 +105,8 @@ class DeepSeekTrainer:
         self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, self._lr_multiplier)
         # This counter determines when the loop and checkpoint are complete.
         self.global_step = 0
+        # Exposed for monitoring after every clipped backward pass.
+        self.last_grad_norm = 0.0
 
     def _lr_multiplier(self, step: int) -> float:
         # Increase linearly during warmup.
@@ -138,7 +140,9 @@ class DeepSeekTrainer:
         # Backpropagate the language-model loss through the full decoder.
         output.loss.backward()
         # Clip before stepping so extreme gradients cannot destabilize the update.
-        nn.utils.clip_grad_norm_(self.model.parameters(), self.config.max_grad_norm)
+        self.last_grad_norm = float(
+            nn.utils.clip_grad_norm_(self.model.parameters(), self.config.max_grad_norm)
+        )
         # Apply parameters first, then advance the learning-rate schedule.
         self.optimizer.step()
         self.scheduler.step()

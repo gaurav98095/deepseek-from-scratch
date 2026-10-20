@@ -22,11 +22,15 @@ The centralized architecture configuration is documented in
 The current decoder model integration is documented in
 [`docs/02b-attention.md`](docs/02b-attention.md).
 
-The runnable training pipeline is documented in
-[`docs/02c-training.md`](docs/02c-training.md). It uses the small current-scaffold
-configuration by default so the pipeline can be started locally.
+The runnable training and inference pipeline is documented in
+[`docs/02c-training.md`](docs/02c-training.md). It uses the small
+current-scaffold configuration by default so the pipeline can be started
+locally and then used to generate text from a saved checkpoint.
 
 See [`commands.md`](commands.md) for the complete command reference.
+
+The [Makefile](Makefile) provides repeatable `dev`, `prod`, numbered-step,
+training, TensorBoard, and test targets.
 
 Run the offline tests with:
 

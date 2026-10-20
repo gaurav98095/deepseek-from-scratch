@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import argparse
+import json
+import math
 import random
+import time
 from pathlib import Path
 
 import torch
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 
 from .data.byte_tokenizer import ByteTokenizer
 from .data.tinystories import TinyStoriesDataset
@@ -39,6 +43,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--log-interval", type=int, default=10)
     # The checkpoint preserves progress so a later step can restore training.
     parser.add_argument("--checkpoint", type=Path, default=Path("checkpoints/deepseek-tiny.pt"))
+    # TensorBoard writes event files here for live and historical metric inspection.
+    parser.add_argument("--tensorboard-logdir", type=Path, default=Path("runs/tensorboard"))
     # Seeding makes data order and initialization more reproducible.
     parser.add_argument("--seed", type=int, default=1337)
     return parser
@@ -73,9 +79,14 @@ def train(args: argparse.Namespace) -> None:
 
     # The first pipeline uses byte IDs, giving a tiny 258-token vocabulary.
     tokenizer = ByteTokenizer()
-    # This prevents token IDs from exceeding the embedding table's vocabulary size.
-    if config.vocab_size != tokenizer.vocab_size:
-        raise ValueError("the selected config vocab_size must be 258 for ByteTokenizer")
+    # The byte tokenizer only needs the first 258 token IDs. A larger model
+    # vocabulary is allowed so the reference configuration can be loaded
+    # before a production tokenizer is introduced in a later step.
+    if config.vocab_size < tokenizer.vocab_size:
+        raise ValueError(
+            f"config vocab_size ({config.vocab_size}) must be at least the "
+            f"tokenizer vocab_size ({tokenizer.vocab_size})"
+        )
 
     # Build the decoder and move all parameters to the selected device.
     model = DeepSeek(config).to(device)
@@ -92,34 +103,82 @@ def train(args: argparse.Namespace) -> None:
             max_steps=args.steps,
         ),
     )
+    # Create the TensorBoard writer once so all steps share one event stream.
+    writer = SummaryWriter(log_dir=str(args.tensorboard_logdir))
+    writer.add_text("run/model_config", json.dumps(config.to_dict(), indent=2), 0)
+    writer.add_text("run/arguments", str(vars(args)), 0)
+    # Static model size metrics help relate training behavior to model capacity.
+    writer.add_scalar(
+        "model/parameters_total",
+        sum(parameter.numel() for parameter in model.parameters()),
+        0,
+    )
+    writer.add_scalar(
+        "model/parameters_trainable",
+        sum(parameter.numel() for parameter in model.parameters() if parameter.requires_grad),
+        0,
+    )
     # This iterator reads prepared stories and emits fixed-length token tensors.
     dataset = TinyStoriesDataset(args.data, tokenizer, args.block_size)
     # DataLoader groups individual token sequences into model batches.
     batches = DataLoader(dataset, batch_size=args.batch_size)
 
-    # Repeat the finite dataset until the requested number of optimizer steps is reached.
-    while trainer.global_step < args.steps:
-        made_progress = False
-        for input_ids in batches:
-            # Mark progress before training so an empty dataset can be detected below.
-            made_progress = True
-            # Move the batch to the same device as the model, then run one full update.
-            output = trainer.train_batch(input_ids.to(device))
-            # Loss is the main signal that training is producing numeric progress.
-            if trainer.global_step % args.log_interval == 0:
-                print(f"step={trainer.global_step} loss={output.loss.item():.4f}")
-            # Stop inside the current epoch as soon as the requested step count is met.
-            if trainer.global_step >= args.steps:
-                break
-        # Without this guard, an empty or overly short dataset would loop forever.
-        if not made_progress:
-            raise RuntimeError("the dataset produced no complete training sequences")
+    try:
+        # Repeat the finite dataset until the requested number of optimizer steps is reached.
+        while trainer.global_step < args.steps:
+            made_progress = False
+            for input_ids in batches:
+                # Mark progress before training so an empty dataset can be detected below.
+                made_progress = True
+                step_started = time.perf_counter()
+                # Move the batch to the same device as the model, then run one full update.
+                output = trainer.train_batch(input_ids.to(device))
+                step_seconds = time.perf_counter() - step_started
+                step = trainer.global_step
+                loss = output.loss.item()
+                tokens = input_ids.numel()
 
-    # Create the parent directory only after training has produced a checkpoint to save.
-    args.checkpoint.parent.mkdir(parents=True, exist_ok=True)
-    # Save weights plus optimizer/scheduler progress for future continuation.
-    trainer.save_checkpoint(args.checkpoint)
-    print(f"saved checkpoint to {args.checkpoint}")
+                # Log optimization health: loss, perplexity, LR, and gradient magnitude.
+                writer.add_scalar("train/loss", loss, step)
+                writer.add_scalar("train/perplexity", math.exp(min(loss, 20.0)), step)
+                writer.add_scalar("optimizer/learning_rate", trainer.optimizer.param_groups[0]["lr"], step)
+                writer.add_scalar("optimizer/gradient_norm", trainer.last_grad_norm, step)
+                # Log data and throughput so slowdowns can be separated from model behavior.
+                writer.add_scalar("data/batch_size", input_ids.shape[0], step)
+                writer.add_scalar("data/sequence_length", input_ids.shape[1], step)
+                writer.add_scalar("performance/step_seconds", step_seconds, step)
+                writer.add_scalar("performance/tokens_per_second", tokens / step_seconds, step)
+                writer.add_scalar("performance/total_tokens", step * tokens, step)
+                # Log output statistics to expose saturation or exploding activations.
+                writer.add_scalar("model/logits_mean", output.logits.detach().mean().item(), step)
+                writer.add_scalar("model/logits_std", output.logits.detach().std().item(), step)
+                if device.type == "cuda":
+                    # CUDA memory metrics explain out-of-memory failures and utilization limits.
+                    writer.add_scalar("system/cuda_memory_allocated_mb", torch.cuda.memory_allocated() / 2**20, step)
+                    writer.add_scalar("system/cuda_memory_reserved_mb", torch.cuda.memory_reserved() / 2**20, step)
+                    writer.add_scalar("system/cuda_max_memory_allocated_mb", torch.cuda.max_memory_allocated() / 2**20, step)
+
+                # Loss is the main signal that training is producing numeric progress.
+                if step % args.log_interval == 0:
+                    print(f"step={step} loss={loss:.4f} tokens_per_second={tokens / step_seconds:.1f}")
+                    writer.flush()
+                # Stop inside the current epoch as soon as the requested step count is met.
+                if trainer.global_step >= args.steps:
+                    break
+            # Without this guard, an empty or overly short dataset would loop forever.
+            if not made_progress:
+                raise RuntimeError("the dataset produced no complete training sequences")
+
+        writer.add_text("run/status", "completed", trainer.global_step)
+        writer.flush()
+        # Create the parent directory only after training has produced a checkpoint to save.
+        args.checkpoint.parent.mkdir(parents=True, exist_ok=True)
+        # Save weights plus optimizer/scheduler progress for future continuation.
+        trainer.save_checkpoint(args.checkpoint)
+        print(f"saved checkpoint to {args.checkpoint}")
+    finally:
+        # Close the event file so TensorBoard can read the final records immediately.
+        writer.close()
 
 
 def main() -> None:
