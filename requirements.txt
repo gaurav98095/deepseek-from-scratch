@@ -1,0 +1,7 @@
+# Dataset preparation
+datasets>=2.18,<5
+tqdm>=4.66,<5
+
+# Development and tests
+pytest>=8.0,<9
+
