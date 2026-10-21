@@ -172,6 +172,27 @@ output = model(
 past_key_values = output.past_key_values
 ```
 
+After every model call, inference measures the actual returned tensors and
+prints a line such as:
+
+```text
+generation_step=1 kv_cache_tokens_per_layer=18 kv_cache_elements=36864 kv_cache_bytes=147456 kv_cache_mib=0.1406
+```
+
+The fields mean:
+
+```text
+generation_step             token-generation iteration
+kv_cache_tokens_per_layer   context tokens already projected into K and V
+kv_cache_elements           total K and V scalar count across all layers
+kv_cache_bytes              actual storage based on each tensor's dtype
+kv_cache_mib                bytes divided by 1024 x 1024
+```
+
+This is the cache used to predict the token at that generation step. The newly
+sampled token joins the cache on the following model call, if another token is
+requested.
+
 When the cache reaches `max_position_embeddings`, inference discards it and
 rebuilds a cache from the newest full context window. This keeps the learned
 absolute position indices valid.
@@ -216,7 +237,8 @@ V shape = [2, 3, 5, 4]
 
 ## 8. Run cached inference
 
-No new command-line option is needed; inference uses the cache automatically:
+No new command-line option is needed; inference uses the cache automatically
+and prints its size at every token-generation step:
 
 ```bash
 make infer INFERENCE_PROMPT="Once upon a time"

@@ -436,6 +436,18 @@ output = softmax(scores) x V_all
 The model returns the updated cache, and inference feeds it into the following
 step. The old tokens do not pass through WK or WV again.
 
+The inference command also measures the returned tensors after every step:
+
+```text
+cache elements = sum(K.numel + V.numel for every layer)
+cache bytes = sum(K.numel x K.element_size + V.numel x V.element_size)
+cache MiB = cache bytes / 1048576
+```
+
+It prints the generation-step number, tokens cached per layer, total elements,
+bytes, and MiB. These are runtime measurements of the real cache dtype and
+shapes, not an estimate from the configuration.
+
 ```mermaid
 flowchart LR
     New[Newest token only] --> QKV[Compute Q new, K new, V new]

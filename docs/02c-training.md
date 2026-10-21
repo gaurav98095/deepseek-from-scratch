@@ -121,7 +121,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--checkpoint", type=Path, default=None)
     parser.add_argument("--checkpoint-dir", type=Path, default=Path("checkpoints"))
     # The prompt is converted to byte IDs by the current educational tokenizer.
-    parser.add_argument("--prompt", required=True)
+    parser.add_argument("--prompt", default="The quick brown fox jumps over the lazy dog.")
     # This controls how many new tokens are appended after the prompt.
     parser.add_argument("--max-new-tokens", type=int, default=50)
     # Temperature 0 uses greedy decoding; higher values produce more variation.
@@ -184,7 +184,7 @@ def generate(
     token_ids = torch.tensor([tokenizer.encode(prompt)], dtype=torch.long, device=device)
     past_key_values: ModelKVCache | None = None
 
-    for _ in range(max_new_tokens):
+    for generation_step in range(1, max_new_tokens + 1):
         # The first call processes the complete prompt and builds every layer's
         # cache. Later calls normally process only the newest generated token.
         cached_length = 0
@@ -208,6 +208,26 @@ def generate(
             raise RuntimeError("the model did not return a KV cache")
         past_key_values = output.past_key_values
         logits = output.logits[:, -1, :]
+
+        # Measure the actual allocated K/V tensors rather than estimating from
+        # configuration values. This includes every decoder layer's K and V.
+        cache_elements = sum(
+            key_cache.numel() + value_cache.numel()
+            for key_cache, value_cache in past_key_values
+        )
+        cache_bytes = sum(
+            key_cache.numel() * key_cache.element_size()
+            + value_cache.numel() * value_cache.element_size()
+            for key_cache, value_cache in past_key_values
+        )
+        cached_tokens_per_layer = past_key_values[0][0].shape[2]
+        print(
+            f"generation_step={generation_step} "
+            f"kv_cache_tokens_per_layer={cached_tokens_per_layer} "
+            f"kv_cache_elements={cache_elements} "
+            f"kv_cache_bytes={cache_bytes} "
+            f"kv_cache_mib={cache_bytes / 2**20:.4f}"
+        )
 
         if temperature == 0:
             next_token = logits.argmax(dim=-1, keepdim=True)

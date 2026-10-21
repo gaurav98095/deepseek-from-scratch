@@ -122,6 +122,15 @@ After that first pass, each normal decoding step processes only the newest
 token. The cache exists only in runtime memory and is not written to the
 checkpoint.
 
+Each generation step prints the live cache size:
+
+```text
+generation_step=1 kv_cache_tokens_per_layer=18 kv_cache_elements=36864 kv_cache_bytes=147456 kv_cache_mib=0.1406
+```
+
+The reported bytes come from the actual K/V tensors and therefore reflect the
+loaded model's layer count, dimensions, context length, and tensor dtype.
+
 If the checkpoint was deleted, repeat `make step-2-dev`; it must be trained
 again because model weights are not stored in the repository.
 
