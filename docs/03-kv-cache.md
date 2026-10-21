@@ -241,7 +241,7 @@ No new command-line option is needed; inference uses the cache automatically
 and prints its size at every token-generation step:
 
 ```bash
-make infer INFERENCE_PROMPT="Once upon a time"
+make inference INFERENCE_PROMPT="Once upon a time"
 ```
 
 The KV cache is runtime memory. It is not saved in the model checkpoint.

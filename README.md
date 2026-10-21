@@ -39,6 +39,10 @@ For the normal multi-head-attention KV-cache formulas, implementation flow,
 context-length growth, memory tables, and chart, see
 [`understanding/02-compute-kv-cache.md`](understanding/02-compute-kv-cache.md).
 
+For an output-based comparison of normal MHA and MLA cache sizes, including
+the reason for the reduction and its performance caveats, see
+[`understanding/03-mha-vs-mla-kv-cache.md`](understanding/03-mha-vs-mla-kv-cache.md).
+
 See [`commands.md`](commands.md) for the complete command reference.
 
 The [Makefile](Makefile) provides repeatable `dev`, `prod`, numbered-step,

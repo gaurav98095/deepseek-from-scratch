@@ -15,14 +15,15 @@ class ModelConfig:
     # Metadata describes which educational model profile the values belong to.
     model_name: str = "DeepSeek-V3"
     model_type: str = "decoder_only"
-    implementation_profile: str = "standard_attention_educational"
+    implementation_profile: str = "multi_head_latent_attention_no_rope_educational"
     vocab_size: int = 129280
     max_position_embeddings: int = 163840
     hidden_size: int = 7168
     num_hidden_layers: int = 61
     num_attention_heads: int = 128
-    num_key_value_heads: int = 128
     head_dim: int = 56
+    q_lora_rank: int = 1536
+    kv_lora_rank: int = 512
     intermediate_size: int = 18432
     hidden_activation: str = "silu"
     attention_dropout: float = 0.0
@@ -34,11 +35,10 @@ class ModelConfig:
     tie_word_embeddings: bool = False
 
     def __post_init__(self) -> None:
-        # Standard attention must exactly partition hidden features across heads.
-        if self.hidden_size != self.num_attention_heads * self.head_dim:
-            raise ValueError("hidden_size must equal num_attention_heads * head_dim")
-        if self.num_key_value_heads != self.num_attention_heads:
-            raise ValueError("standard attention requires num_key_value_heads == num_attention_heads")
+        if self.num_attention_heads < 1 or self.head_dim < 1:
+            raise ValueError("attention head count and dimension must be positive")
+        if self.q_lora_rank < 1 or self.kv_lora_rank < 1:
+            raise ValueError("query and KV latent ranks must be positive")
         if self.num_hidden_layers < 1:
             raise ValueError("num_hidden_layers must be positive")
         if self.max_position_embeddings < 1:

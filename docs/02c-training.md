@@ -76,7 +76,7 @@ stored in the repository.
 Run the development pipeline first:
 
 ```bash
-make step-2-dev
+make train-model-dev
 ```
 
 This creates:
@@ -276,13 +276,13 @@ if __name__ == "__main__":
 Run inference through the Makefile:
 
 ```bash
-make infer INFERENCE_PROMPT="Once upon a time"
+make inference INFERENCE_PROMPT="Once upon a time"
 ```
 
 For a specific checkpoint and longer generation:
 
 ```bash
-make infer \
+make inference \
   INFERENCE_CONFIG=configs/tiny_train.json \
   CHECKPOINT=checkpoints/deepseek-tiny.pt \
   INFERENCE_PROMPT="The little girl went" \
@@ -291,7 +291,7 @@ make infer \
 ```
 
 The checkpoint must be loaded with the same architecture configuration used
-during training. If the checkpoint is deleted, run `make step-2-dev` again.
+during training. If the checkpoint is deleted, run `make train-model-dev` again.
 
 ## Exact files in this step
 

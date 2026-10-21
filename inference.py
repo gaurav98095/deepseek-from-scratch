@@ -90,7 +90,7 @@ def generate(
         # cache. Later calls normally process only the newest generated token.
         cached_length = 0
         if past_key_values is not None:
-            cached_length = past_key_values[0][0].shape[2]
+            cached_length = past_key_values[0].shape[1]
 
         if past_key_values is None or cached_length >= model.config.max_position_embeddings:
             # At the context limit, discard the old cache and rebuild it from the
@@ -110,21 +110,17 @@ def generate(
         past_key_values = output.past_key_values
         logits = output.logits[:, -1, :]
 
-        # Measure the actual allocated K/V tensors rather than estimating from
-        # configuration values. This includes every decoder layer's K and V.
-        cache_elements = sum(
-            key_cache.numel() + value_cache.numel()
-            for key_cache, value_cache in past_key_values
-        )
+        # Measure the actual compressed KV latent tensors across all layers.
+        cache_elements = sum(latent_cache.numel() for latent_cache in past_key_values)
         cache_bytes = sum(
-            key_cache.numel() * key_cache.element_size()
-            + value_cache.numel() * value_cache.element_size()
-            for key_cache, value_cache in past_key_values
+            latent_cache.numel() * latent_cache.element_size()
+            for latent_cache in past_key_values
         )
-        cached_tokens_per_layer = past_key_values[0][0].shape[2]
+        cached_tokens_per_layer = past_key_values[0].shape[1]
         print(
             f"generation_step={generation_step} "
-            f"kv_cache_tokens_per_layer={cached_tokens_per_layer} "
+            f"kv_latent_tokens_per_layer={cached_tokens_per_layer} "
+            f"kv_latent_rank={past_key_values[0].shape[2]} "
             f"kv_cache_elements={cache_elements} "
             f"kv_cache_bytes={cache_bytes} "
             f"kv_cache_mib={cache_bytes / 2**20:.4f}"

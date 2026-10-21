@@ -1,43 +1,12 @@
 import pytest
 import torch
 
-from src.model.attention import CausalSelfAttention, LearnedPositionalEmbedding, MultiHeadAttention, SelfAttention
+from src.model.attention import (
+    CausalMultiHeadLatentAttention,
+    LearnedPositionalEmbedding,
+)
 from src.model.config import ModelConfig
 from src.model.deepseek import DeepSeek
-
-
-def test_multi_head_attention_preserves_shape() -> None:
-    # A 12-wide model split across 3 heads should return the original width.
-    attention = MultiHeadAttention(embed_dim=12, num_heads=3)
-
-    output, weights = attention(torch.randn(2, 5, 12), return_attention=True)
-
-    assert output.shape == (2, 5, 12)
-    assert weights.shape == (2, 3, 5, 5)
-    assert torch.allclose(weights.sum(dim=-1), torch.ones(2, 3, 5), atol=1e-6)
-
-
-def test_self_attention_is_one_head() -> None:
-    # SelfAttention is the single-head specialization of the general module.
-    attention = SelfAttention(embed_dim=8)
-
-    _, weights = attention(torch.randn(2, 4, 8), return_attention=True)
-
-    assert weights.shape == (2, 1, 4, 4)
-
-
-def test_causal_attention_cannot_use_future_tokens() -> None:
-    # Changing future tokens must not change outputs for earlier positions.
-    torch.manual_seed(0)
-    attention = CausalSelfAttention(embed_dim=8, num_heads=2).eval()
-    original = torch.randn(1, 4, 8)
-    changed_future = original.clone()
-    changed_future[:, 2:] += 1000
-
-    first_two_original = attention(original)[:, :2]
-    first_two_changed = attention(changed_future)[:, :2]
-
-    assert torch.allclose(first_two_original, first_two_changed, atol=1e-5)
 
 
 def test_learned_positional_embedding_shape_and_limit() -> None:
@@ -49,16 +18,15 @@ def test_learned_positional_embedding_shape_and_limit() -> None:
         positions(17)
 
 
-def test_attention_rejects_invalid_head_configuration() -> None:
-    # The hidden width must divide evenly into the requested number of heads.
-    with pytest.raises(ValueError, match="divisible"):
-        MultiHeadAttention(embed_dim=10, num_heads=3)
-
-
-def test_cached_attention_matches_full_causal_attention() -> None:
-    # Incremental attention must reproduce a single full-sequence forward pass.
-    torch.manual_seed(1)
-    attention = CausalSelfAttention(embed_dim=12, num_heads=3).eval()
+def test_latent_attention_cache_matches_full_attention_and_is_compressed() -> None:
+    torch.manual_seed(3)
+    attention = CausalMultiHeadLatentAttention(
+        embed_dim=12,
+        num_heads=3,
+        head_dim=4,
+        q_lora_rank=6,
+        kv_lora_rank=2,
+    ).eval()
     hidden_states = torch.randn(2, 5, 12)
 
     full_output = attention(hidden_states)
@@ -76,8 +44,42 @@ def test_cached_attention_matches_full_causal_attention() -> None:
     cached_output = torch.cat((first_output, fourth_output, fifth_output), dim=1)
 
     assert torch.allclose(cached_output, full_output, atol=1e-6)
-    assert cache[0].shape == (2, 3, 5, 4)
-    assert cache[1].shape == (2, 3, 5, 4)
+    assert cache.shape == (2, 5, 2)
+    assert cache.numel() < 2 * 3 * 5 * 4 * 2
+
+
+def test_latent_attention_is_causal() -> None:
+    torch.manual_seed(4)
+    attention = CausalMultiHeadLatentAttention(
+        embed_dim=8,
+        num_heads=2,
+        head_dim=4,
+        q_lora_rank=4,
+        kv_lora_rank=2,
+    ).eval()
+    original = torch.randn(1, 4, 8)
+    changed_future = original.clone()
+    changed_future[:, 2:] += 1000
+
+    first_two_original = attention(original)[:, :2]
+    first_two_changed = attention(changed_future)[:, :2]
+
+    assert torch.allclose(first_two_original, first_two_changed, atol=1e-5)
+
+
+def test_latent_attention_head_width_can_differ_from_hidden_size() -> None:
+    attention = CausalMultiHeadLatentAttention(
+        embed_dim=10,
+        num_heads=2,
+        head_dim=3,
+        q_lora_rank=4,
+        kv_lora_rank=2,
+    )
+
+    output, weights = attention(torch.randn(1, 4, 10), return_attention=True)
+
+    assert output.shape == (1, 4, 10)
+    assert weights.shape == (1, 2, 4, 4)
 
 
 def test_cached_model_matches_full_sequence_logits() -> None:
@@ -89,8 +91,9 @@ def test_cached_model_matches_full_sequence_logits() -> None:
         hidden_size=12,
         num_hidden_layers=2,
         num_attention_heads=3,
-        num_key_value_heads=3,
         head_dim=4,
+        q_lora_rank=6,
+        kv_lora_rank=2,
         intermediate_size=24,
         torch_dtype="float32",
     )
@@ -113,4 +116,4 @@ def test_cached_model_matches_full_sequence_logits() -> None:
     assert torch.allclose(torch.cat(cached_logits, dim=1), full_logits, atol=1e-6)
     assert past_key_values is not None
     assert len(past_key_values) == config.num_hidden_layers
-    assert past_key_values[0][0].shape == (1, 3, 5, 4)
+    assert past_key_values[0].shape == (1, 5, 2)

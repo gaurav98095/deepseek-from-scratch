@@ -2,11 +2,9 @@
 
 # Re-export building blocks so callers do not need to know internal file layout.
 from .attention import (
-    CausalSelfAttention,
-    KVCache,
+    CausalMultiHeadLatentAttention,
+    LatentKVCache,
     LearnedPositionalEmbedding,
-    MultiHeadAttention,
-    SelfAttention,
 )
 from .config import ModelConfig, default_config_path, load_default_config
 from .deepseek import (
@@ -19,11 +17,9 @@ from .deepseek import (
 )
 
 __all__ = [
-    "CausalSelfAttention",
-    "KVCache",
+    "CausalMultiHeadLatentAttention",
+    "LatentKVCache",
     "LearnedPositionalEmbedding",
-    "MultiHeadAttention",
-    "SelfAttention",
     "ModelConfig",
     "default_config_path",
     "load_default_config",

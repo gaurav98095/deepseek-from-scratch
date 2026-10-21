@@ -17,8 +17,9 @@ def test_generation_prefills_once_then_processes_one_token(
         hidden_size=8,
         num_hidden_layers=1,
         num_attention_heads=2,
-        num_key_value_heads=2,
         head_dim=4,
+        q_lora_rank=4,
+        kv_lora_rank=2,
         intermediate_size=16,
         torch_dtype="float32",
     )
@@ -30,7 +31,7 @@ def test_generation_prefills_once_then_processes_one_token(
             parameter.zero_()
 
     projection_lengths: list[int] = []
-    hook = model.layers[0].attention.q_proj.register_forward_pre_hook(
+    hook = model.layers[0].attention.q_a_proj.register_forward_pre_hook(
         lambda _module, inputs: projection_lengths.append(inputs[0].shape[1])
     )
     try:
@@ -49,14 +50,15 @@ def test_generation_prefills_once_then_processes_one_token(
     assert projection_lengths == [3, 1, 1]
     assert generated.startswith("a")
 
-    # The printed values come from real float32 K/V tensors in the one-layer model.
+    # The printed values come from the actual float32 KV latent cache.
     cache_lines = capsys.readouterr().out.strip().splitlines()
     assert len(cache_lines) == 3
     assert "generation_step=1" in cache_lines[0]
-    assert "kv_cache_tokens_per_layer=3" in cache_lines[0]
-    assert "kv_cache_elements=48" in cache_lines[0]
-    assert "kv_cache_bytes=192" in cache_lines[0]
+    assert "kv_latent_tokens_per_layer=3" in cache_lines[0]
+    assert "kv_latent_rank=2" in cache_lines[0]
+    assert "kv_cache_elements=6" in cache_lines[0]
+    assert "kv_cache_bytes=24" in cache_lines[0]
     assert "generation_step=3" in cache_lines[2]
-    assert "kv_cache_tokens_per_layer=5" in cache_lines[2]
-    assert "kv_cache_elements=80" in cache_lines[2]
-    assert "kv_cache_bytes=320" in cache_lines[2]
+    assert "kv_latent_tokens_per_layer=5" in cache_lines[2]
+    assert "kv_cache_elements=10" in cache_lines[2]
+    assert "kv_cache_bytes=40" in cache_lines[2]

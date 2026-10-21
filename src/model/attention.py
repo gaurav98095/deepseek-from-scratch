@@ -1,4 +1,4 @@
-"""Simple self-attention components used by the educational decoder."""
+"""Attention components used by the educational decoder."""
 
 from __future__ import annotations
 
@@ -7,71 +7,61 @@ import math
 import torch
 from torch import Tensor, nn
 
-# One decoder layer caches its projected keys and values as [B, H, T, Dh].
-KVCache = tuple[Tensor, Tensor]
+# Multi-head latent attention caches its compressed KV representation as [B, T, R].
+LatentKVCache = Tensor
 
 
-class MultiHeadAttention(nn.Module):
-    """Scaled dot-product attention for tensors shaped ``[B, T, D]``."""
+class CausalMultiHeadLatentAttention(nn.Module):
+    """Causal multi-head attention with a compressed per-token KV cache."""
 
     def __init__(
         self,
         embed_dim: int,
         num_heads: int,
+        head_dim: int,
+        q_lora_rank: int,
+        kv_lora_rank: int,
         dropout: float = 0.0,
-        bias: bool = True,
-        causal: bool = False,
+        bias: bool = False,
+        norm_eps: float = 1e-6,
     ) -> None:
         super().__init__()
 
-        # Every head receives an equal slice of the embedding dimension, so all
-        # dimensions must be positive and `embed_dim` must divide evenly.
-        if embed_dim <= 0:
-            raise ValueError("embed_dim must be positive")
-        if num_heads <= 0:
-            raise ValueError("num_heads must be positive")
-        if embed_dim % num_heads != 0:
-            raise ValueError("embed_dim must be divisible by num_heads")
+        if embed_dim <= 0 or num_heads <= 0 or head_dim <= 0:
+            raise ValueError("embedding, head count, and head dimension must be positive")
+        if q_lora_rank <= 0 or kv_lora_rank <= 0:
+            raise ValueError("query and KV latent ranks must be positive")
         if not 0.0 <= dropout < 1.0:
             raise ValueError("dropout must be in the range [0, 1)")
 
-        # D = H * Dh. For the reference config: 7168 = 128 * 56.
         self.embed_dim = embed_dim
         self.num_heads = num_heads
-        self.head_dim = embed_dim // num_heads
+        self.head_dim = head_dim
+        self.q_lora_rank = q_lora_rank
+        self.kv_lora_rank = kv_lora_rank
 
-        # `causal` controls whether token t may read tokens after position t.
-        self.causal = causal
-
-        # These four matrices are learned independently. Q and K decide which
-        # tokens interact, V carries content, and WO mixes the merged heads.
-        self.q_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
-        self.k_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
-        self.v_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
-        self.out_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
-
-        # Dropout applies to normalized attention probabilities during training.
+        self.q_a_proj = nn.Linear(embed_dim, q_lora_rank, bias=False)
+        self.q_layernorm = nn.LayerNorm(q_lora_rank, eps=norm_eps)
+        self.q_b_proj = nn.Linear(q_lora_rank, num_heads * head_dim, bias=bias)
+        self.kv_a_proj = nn.Linear(embed_dim, kv_lora_rank, bias=False)
+        self.kv_layernorm = nn.LayerNorm(kv_lora_rank, eps=norm_eps)
+        self.kv_b_proj = nn.Linear(kv_lora_rank, 2 * num_heads * head_dim, bias=bias)
+        self.out_proj = nn.Linear(num_heads * head_dim, embed_dim, bias=bias)
         self.dropout = nn.Dropout(dropout)
 
     def forward(
         self,
         hidden_states: Tensor,
         attention_mask: Tensor | None = None,
-        past_key_value: KVCache | None = None,
+        past_key_value: LatentKVCache | None = None,
         *,
         return_attention: bool = False,
         use_cache: bool = False,
-    ) -> Tensor | tuple[Tensor, Tensor] | tuple[Tensor, KVCache]:
-        """Project, attend, merge heads, and project back to ``embed_dim``."""
+    ) -> Tensor | tuple[Tensor, Tensor] | tuple[Tensor, LatentKVCache]:
+        """Attend with expanded K/V vectors while retaining only their latent."""
 
-        # Cache output and attention-weight output are separate teaching/debugging
-        # modes; keeping them exclusive makes each return shape unambiguous.
         if return_attention and use_cache:
             raise ValueError("return_attention and use_cache cannot both be enabled")
-        if use_cache and not self.causal:
-            raise ValueError("KV caching is supported only for causal attention")
-
-        # Attention expects one vector per token: batch B, sequence T, width D.
         if hidden_states.ndim != 3:
             raise ValueError("hidden_states must have shape (batch, sequence, embed_dim)")
         if hidden_states.shape[-1] != self.embed_dim:
@@ -81,124 +71,67 @@ class MultiHeadAttention(nn.Module):
         if hidden_states.shape[1] == 0:
             raise ValueError("sequence length must be greater than zero")
 
-        # Only B and T vary at runtime; D was fixed when this module was built.
         batch, sequence, _ = hidden_states.shape
+        query = self.q_b_proj(self.q_layernorm(self.q_a_proj(hidden_states)))
+        query = query.view(batch, sequence, self.num_heads, self.head_dim).transpose(1, 2)
 
-        # Each projection starts as [B, T, D]. `view` exposes H independent
-        # heads, and `transpose` puts H before T for batched matrix products:
-        # [B, T, D] -> [B, T, H, Dh] -> [B, H, T, Dh].
-        query = self.q_proj(hidden_states).view(
-            batch, sequence, self.num_heads, self.head_dim
-        ).transpose(1, 2)
-        key = self.k_proj(hidden_states).view(
-            batch, sequence, self.num_heads, self.head_dim
-        ).transpose(1, 2)
-        value = self.v_proj(hidden_states).view(
-            batch, sequence, self.num_heads, self.head_dim
-        ).transpose(1, 2)
-
-        # During incremental inference, K and V for earlier tokens have already
-        # been projected by this layer. Append only the new token projections.
+        kv_latent = self.kv_layernorm(self.kv_a_proj(hidden_states))
         past_length = 0
         if past_key_value is not None:
-            if not self.causal:
-                raise ValueError("past_key_value is supported only for causal attention")
-            past_key, past_value = past_key_value
-            expected_prefix = (batch, self.num_heads)
-            if past_key.ndim != 4 or past_value.ndim != 4:
-                raise ValueError("cached keys and values must have shape [B, H, T, Dh]")
-            if past_key.shape != past_value.shape:
-                raise ValueError("cached keys and values must have identical shapes")
-            if past_key.shape[:2] != expected_prefix or past_key.shape[3] != self.head_dim:
-                raise ValueError("cached keys and values do not match this attention layer")
+            if past_key_value.ndim != 3:
+                raise ValueError("cached KV latent must have shape [B, T, kv_lora_rank]")
             if (
-                past_key.device != key.device
-                or past_value.device != value.device
-                or past_key.dtype != key.dtype
-                or past_value.dtype != value.dtype
+                past_key_value.shape[0] != batch
+                or past_key_value.shape[2] != self.kv_lora_rank
             ):
-                raise ValueError("cached keys and values must match the current device and dtype")
+                raise ValueError("cached KV latent does not match this attention layer")
+            if (
+                past_key_value.device != kv_latent.device
+                or past_key_value.dtype != kv_latent.dtype
+            ):
+                raise ValueError("cached KV latent must match the current device and dtype")
+            past_length = past_key_value.shape[1]
+            kv_latent = torch.cat((past_key_value, kv_latent), dim=1)
 
-            past_length = past_key.shape[2]
-            key = torch.cat((past_key, key), dim=2)
-            value = torch.cat((past_value, value), dim=2)
+        expanded_kv = self.kv_b_proj(kv_latent).view(
+            batch,
+            past_length + sequence,
+            2,
+            self.num_heads,
+            self.head_dim,
+        )
+        key = expanded_kv[:, :, 0].transpose(1, 2)
+        value = expanded_kv[:, :, 1].transpose(1, 2)
 
-        # `present_key_value` contains every position available after this call
-        # and becomes this layer's input cache on the next generation step.
-        present_key_value = (key, value)
-        key_length = key.shape[2]
-
-        # Every query is compared with every key in the same head. Dividing by
-        # sqrt(Dh) prevents large dot products from saturating the softmax:
-        # [B, H, Q, Dh] @ [B, H, Dh, K] -> [B, H, Q, K].
         scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(self.head_dim)
+        key_length = key.shape[2]
+        visible = torch.ones(
+            sequence,
+            key_length,
+            dtype=torch.bool,
+            device=hidden_states.device,
+        ).tril(diagonal=past_length)
+        scores = scores.masked_fill(~visible, torch.finfo(scores.dtype).min)
 
-        if self.causal:
-            # A cached query starts at absolute position `past_length`, so the
-            # diagonal offset lets query i see keys through past_length + i.
-            # For a one-token cached step, [1, K] is entirely visible.
-            visible = torch.ones(
-                sequence,
-                key_length,
-                dtype=torch.bool,
-                device=hidden_states.device,
-            ).tril(diagonal=past_length)
-
-            # Hidden future positions receive the smallest representable value,
-            # which makes their probability effectively zero after softmax.
-            scores = scores.masked_fill(~visible, torch.finfo(scores.dtype).min)
         if attention_mask is not None:
-            # In this API True means visible and False means blocked. The mask
-            # must be broadcastable to [B, H, query_length, key_length].
             if attention_mask.dtype is not torch.bool:
                 raise TypeError("attention_mask must have boolean dtype")
             scores = scores.masked_fill(~attention_mask, torch.finfo(scores.dtype).min)
 
-        # Softmax converts each query row into probabilities over key positions.
-        # The probabilities sum to one before dropout is applied.
         weights = self.dropout(torch.softmax(scores, dim=-1))
-
-        # Use those probabilities to take a weighted sum of value vectors:
-        # [B, H, Q, K] @ [B, H, K, Dh] -> [B, H, Q, Dh].
         attended = torch.matmul(weights, value)
-
-        # Return from separate heads to one vector per token. `contiguous` makes
-        # the transposed memory layout safe to flatten: [B, H, T, Dh] -> [B, T, D].
-        attended = attended.transpose(1, 2).contiguous().view(batch, sequence, self.embed_dim)
-
-        # WO is not a reshape: it is a learned D x D transformation that mixes
-        # information from all heads before the decoder's residual addition.
+        attended = attended.transpose(1, 2).contiguous().view(
+            batch,
+            sequence,
+            self.num_heads * self.head_dim,
+        )
         output = self.out_proj(attended)
 
-        # Inference requests the updated cache, while tests and visualizations may
-        # request attention probabilities. Ordinary training returns only output.
         if use_cache:
-            return output, present_key_value
+            return output, kv_latent
         if return_attention:
             return output, weights
         return output
-
-
-class SelfAttention(MultiHeadAttention):
-    """Non-causal single-head attention kept as a simple specialization."""
-
-    def __init__(self, embed_dim: int, dropout: float = 0.0, bias: bool = True) -> None:
-        # One head and no causal mask provide the simplest self-attention case.
-        super().__init__(embed_dim, 1, dropout=dropout, bias=bias, causal=False)
-
-
-class CausalSelfAttention(MultiHeadAttention):
-    """Causal multi-head attention used inside every decoder block."""
-
-    def __init__(
-        self,
-        embed_dim: int,
-        num_heads: int,
-        dropout: float = 0.0,
-        bias: bool = True,
-    ) -> None:
-        # Decoder language modeling needs multiple heads plus future-token masking.
-        super().__init__(embed_dim, num_heads, dropout=dropout, bias=bias, causal=True)
 
 
 class LearnedPositionalEmbedding(nn.Module):

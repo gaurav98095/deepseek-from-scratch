@@ -99,10 +99,10 @@ machine.
 ## Inference
 
 Inference does not download a model checkpoint. A checkpoint is created only
-after training. For the local model, run this first:
+after training. For the local model, run:
 
 ```bash
-make step-2-dev
+make train-model-dev
 ```
 
 That command writes the checkpoint to:
@@ -114,7 +114,7 @@ checkpoints/deepseek-tiny.pt
 Then generate from the newest local checkpoint:
 
 ```bash
-make infer INFERENCE_PROMPT="Once upon a time"
+make inference INFERENCE_PROMPT="Once upon a time"
 ```
 
 Inference automatically builds a per-layer KV cache during prompt prefill.
@@ -131,14 +131,14 @@ generation_step=1 kv_cache_tokens_per_layer=18 kv_cache_elements=36864 kv_cache_
 The reported bytes come from the actual K/V tensors and therefore reflect the
 loaded model's layer count, dimensions, context length, and tensor dtype.
 
-If the checkpoint was deleted, repeat `make step-2-dev`; it must be trained
-again because model weights are not stored in the repository.
+If the checkpoint was deleted, repeat `make train-model-dev`; it must be
+trained again because model weights are not stored in the repository.
 
 The inference command uses `configs/tiny_train.json` by default. Use the
 matching configuration when loading a production checkpoint:
 
 ```bash
-make infer \
+make inference \
   INFERENCE_CONFIG=configs/tiny_train.json \
   CHECKPOINT=checkpoints/deepseek-tiny.pt \
   INFERENCE_PROMPT="Once upon a time" \
@@ -226,38 +226,38 @@ Each implementation step should update its numbered document before committing.
 
 ## Makefile shortcuts
 
-The Makefile is the preferred interface for repeatable workflows:
+The Makefile provides a short local workflow and explicit production targets:
 
 ```bash
 make help
 make setup
-make step STEP=1 ENV=dev
-make step STEP=2 ENV=dev
-make dev
-make infer INFERENCE_PROMPT="Once upon a time"
+make prepare-data
+make train-model-dev
+make inference INFERENCE_PROMPT="Once upon a time"
 make tensorboard
+make test
 ```
 
-Use `ENV=prod` for the full data/configuration path:
+`make prepare-data` streams the full TinyStories training split to
+`data/processed/tinystories-train.jsonl`. It can be run ahead of time or on
+another machine and copied to the production training environment. Production
+training will prepare it automatically if it is missing.
 
 ```bash
-make step STEP=1 ENV=prod
-make step STEP=2 ENV=prod
+make train-model-prod
 ```
 
-The production target defaults to a long schedule with 100,000 optimizer
-steps, 2,000 warmup steps, a 2,048-token context, and batch size 1. Override
-these values for your hardware, for example:
+Development training uses a small dataset and the tiny config. Production
+training uses the full dataset, the DeepSeek reference config, and CUDA by
+default. Override production paths or training parameters for your environment:
 
 ```bash
-make step-2-prod PROD_STEPS=10000 PROD_WARMUP_STEPS=500 PROD_BATCH_SIZE=2
+make train-model-prod \
+  PROD_DATA=/data/tinystories-train.jsonl \
+  PROD_STEPS=10000 \
+  PROD_WARMUP_STEPS=500 \
+  PROD_BATCH_SIZE=2
 ```
 
-```bash
-make step STEP=1 ENV=prod
-make step STEP=2 ENV=prod
-make prod
-```
-
-`make step 1` is not positional Make syntax. Use `make step STEP=1 ENV=dev`
-or the explicit aliases such as `make step-1-dev`.
+Inference defaults to the development config. When using a production
+checkpoint, select its matching config and checkpoint explicitly.
