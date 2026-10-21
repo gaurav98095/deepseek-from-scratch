@@ -117,6 +117,11 @@ Then generate from the newest local checkpoint:
 make infer INFERENCE_PROMPT="Once upon a time"
 ```
 
+Inference automatically builds a per-layer KV cache during prompt prefill.
+After that first pass, each normal decoding step processes only the newest
+token. The cache exists only in runtime memory and is not written to the
+checkpoint.
+
 If the checkpoint was deleted, repeat `make step-2-dev`; it must be trained
 again because model weights are not stored in the repository.
 
@@ -144,6 +149,7 @@ educational stage.
 pytest
 pytest tests/test_prepare_tinystories.py
 pytest tests/test_attention.py
+pytest tests/test_inference.py
 ```
 
 ## Checkpoints
@@ -204,6 +210,7 @@ feat(data): add streaming TinyStories preparation
 feat(config): add centralized DeepSeek model configuration
 feat(model): add standard causal multi-head attention
 feat(train): add runnable attention-based training pipeline
+feat(inference): add KV-cached generation
 ```
 
 Each implementation step should update its numbered document before committing.

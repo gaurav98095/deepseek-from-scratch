@@ -21,10 +21,10 @@ D = H x Dh
 7168 = 128 x 56
 ```
 
-The current root-level [inference.py](../inference.py) does not yet reuse a
-KV cache. It recomputes attention over the current context for every generated
-token. This document explains the memory that would be required when cache
-reuse is added to normal multi-head attention.
+The current root-level [inference.py](../inference.py) now reuses a KV cache.
+It performs one full prompt pass, called the prefill, and then normally sends
+only one newly generated token through the model at each decoding step. This
+document explains both the cache memory and the exact implementation flow.
 
 ## 1. What is stored in the cache?
 
@@ -364,7 +364,160 @@ decimal_GB = 7163871232 / 1000000000
            ≈ 7.16 GB
 ```
 
-## 12. Practical conclusion
+## 12. How the repository implementation works
+
+The cache is deliberately implemented only for inference. Ordinary training
+still calls the model without cache arguments and follows exactly the same
+full-sequence path as before.
+
+### 12.1 One cache per decoder layer
+
+In [attention.py](../src/model/attention.py), one layer cache is represented as:
+
+```python
+KVCache = tuple[Tensor, Tensor]
+```
+
+The first tensor is K and the second is V. In
+[deepseek.py](../src/model/deepseek.py), the whole-model cache is:
+
+```python
+ModelKVCache = tuple[KVCache, ...]
+```
+
+Its tuple length equals `num_hidden_layers`. Layer 0 never shares cached values
+with layer 1 because every layer has different learned WK and WV projections.
+
+### 12.2 Prompt prefill
+
+At the first generation step, [inference.py](../inference.py) passes the full
+prompt into the model:
+
+```text
+model input shape = [B, prompt_length]
+past_key_values = None
+use_cache = True
+```
+
+Every decoder layer computes Q, K, and V for the prompt. It returns its K and V
+as `[B, H, prompt_length, Dh]`. The output object therefore contains one cache
+pair per layer.
+
+```mermaid
+flowchart LR
+    Prompt[Full prompt tokens] --> Prefill[One full model pass]
+    Prefill --> Logits[Last prompt-token logits]
+    Prefill --> L0[Layer 0 K and V]
+    Prefill --> L1[Layer 1 K and V]
+    Prefill --> LN[Layer L-1 K and V]
+```
+
+### 12.3 One-token decode
+
+After sampling the first new token, the next call passes only that token plus
+the previous cache:
+
+```text
+model input shape = [B, 1]
+past key/value shape per layer = [B, H, T, Dh]
+new key/value shape per layer = [B, H, 1, Dh]
+updated key/value shape = [B, H, T + 1, Dh]
+```
+
+Inside each attention layer:
+
+```text
+K_all = concatenate(K_past, K_new, sequence dimension)
+V_all = concatenate(V_past, V_new, sequence dimension)
+scores = Q_new x transpose(K_all) / sqrt(Dh)
+output = softmax(scores) x V_all
+```
+
+The model returns the updated cache, and inference feeds it into the following
+step. The old tokens do not pass through WK or WV again.
+
+```mermaid
+flowchart LR
+    New[Newest token only] --> QKV[Compute Q new, K new, V new]
+    Old[Cached K and V for T tokens] --> Append[Append K new and V new]
+    QKV --> Append
+    QKV --> Scores[Q new attends to all T+1 keys]
+    Append --> Scores
+    Scores --> Next[Next-token logits and updated cache]
+```
+
+### 12.4 Why the causal-mask diagonal is offset
+
+Without a cache, a sequence of length `Q` uses a square lower-triangular mask:
+
+```text
+query 0 sees key 0
+query 1 sees keys 0..1
+query 2 sees keys 0..2
+```
+
+With `T_past` cached tokens, current query 0 is actually absolute position
+`T_past`. It must see all cached keys and its own new key. Therefore the code
+constructs `[query_length, key_length]` and uses:
+
+```python
+visible = torch.ones(query_length, key_length).tril(diagonal=past_length)
+```
+
+For a one-token decode with five cached tokens, the mask is:
+
+```text
+query shape = [1]
+key shape   = [6]
+visible     = [True, True, True, True, True, True]
+```
+
+Using an ordinary `tril()` with diagonal zero here would expose only the first
+key and silently produce incorrect logits.
+
+### 12.5 Why positional embeddings also need an offset
+
+The newest token is not position zero. If the cache already holds `T` tokens,
+the next position is `T`. The positional embedding call therefore uses:
+
+```text
+start_position = cached sequence length
+positions = [T, T + 1, ..., T + current_length - 1]
+```
+
+Restarting at zero for every one-token call would give every generated token
+the same positional vector. The cache could have correct K/V shapes while the
+model still produced different logits from full-sequence inference.
+
+### 12.6 Reaching the configured context limit
+
+This educational model uses learned absolute positions and has a finite
+`max_position_embeddings`. Once the cache reaches that length, inference:
+
+```text
+1. Drops the existing cache.
+2. Keeps only the newest max_position_embeddings token IDs.
+3. Recomputes that window as a new prefill with positions starting at zero.
+4. Continues one-token cached decoding.
+```
+
+Rebuilding at the boundary costs one full-window forward pass, but it keeps the
+implementation correct and prevents the cache from growing beyond the
+configured position table.
+
+### 12.7 What the correctness tests prove
+
+[test_attention.py](../tests/test_attention.py) checks two equivalences:
+
+```text
+cached causal attention output == full causal attention output
+cached token-by-token model logits == full-sequence model logits
+```
+
+The first catches K/V concatenation and causal-mask errors. The second also
+catches incorrect layer routing and positional offsets.
+
+## 13. Practical conclusion
 
 For the current DeepSeek reference dimensions and normal multi-head attention:
 
@@ -382,4 +535,5 @@ Therefore:
 The current repository uses a small configuration for local execution, so its
 real cache requirements are much smaller. The large numbers above are a direct
 consequence of applying the reference dimensions to normal multi-head
-attention.
+attention. KV caching reduces repeated computation; it does not make the cache
+memory free, and that memory still grows linearly until the context limit.

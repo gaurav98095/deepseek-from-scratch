@@ -27,12 +27,16 @@ The runnable training and inference pipeline is documented in
 current-scaffold configuration by default so the pipeline can be started
 locally and then used to generate text from a saved checkpoint.
 
+KV-cached autoregressive inference is implemented in
+[`docs/03-kv-cache.md`](docs/03-kv-cache.md). Prompt tokens are processed once;
+later decoding steps normally process only the newest token.
+
 For a tensor-by-tensor walkthrough of the full reference dimensions, one
 decoder block, repeated layers, shapes, and parameter calculations, see
 [`understanding/01-deepseek-v3-flow.md`](understanding/01-deepseek-v3-flow.md).
 
-For the normal multi-head-attention KV-cache formulas, context-length growth,
-memory tables, and chart, see
+For the normal multi-head-attention KV-cache formulas, implementation flow,
+context-length growth, memory tables, and chart, see
 [`understanding/02-compute-kv-cache.md`](understanding/02-compute-kv-cache.md).
 
 See [`commands.md`](commands.md) for the complete command reference.

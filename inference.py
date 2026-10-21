@@ -9,7 +9,7 @@ import torch
 
 from src.data.byte_tokenizer import ByteTokenizer
 from src.model.config import ModelConfig
-from src.model.deepseek import DeepSeek
+from src.model.deepseek import DeepSeek, ModelKVCache
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -22,7 +22,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--checkpoint", type=Path, default=None)
     parser.add_argument("--checkpoint-dir", type=Path, default=Path("checkpoints"))
     # The prompt is converted to byte IDs by the current educational tokenizer.
-    parser.add_argument("--prompt", required=True)
+    parser.add_argument("--prompt", default="The quick brown fox jumps over the lazy dog.")
     # This controls how many new tokens are appended after the prompt.
     parser.add_argument("--max-new-tokens", type=int, default=50)
     # Temperature 0 uses greedy decoding; higher values produce more variation.
@@ -83,10 +83,32 @@ def generate(
 
     device = next(model.parameters()).device
     token_ids = torch.tensor([tokenizer.encode(prompt)], dtype=torch.long, device=device)
+    past_key_values: ModelKVCache | None = None
+
     for _ in range(max_new_tokens):
-        # Keep only the newest context if generation reaches the position limit.
-        context = token_ids[:, -model.config.max_position_embeddings :]
-        logits = model(context).logits[:, -1, :]
+        # The first call processes the complete prompt and builds every layer's
+        # cache. Later calls normally process only the newest generated token.
+        cached_length = 0
+        if past_key_values is not None:
+            cached_length = past_key_values[0][0].shape[2]
+
+        if past_key_values is None or cached_length >= model.config.max_position_embeddings:
+            # At the context limit, discard the old cache and rebuild it from the
+            # newest window. This also restarts learned positions at zero.
+            model_input = token_ids[:, -model.config.max_position_embeddings :]
+            past_key_values = None
+        else:
+            model_input = token_ids[:, -1:]
+
+        output = model(
+            model_input,
+            past_key_values=past_key_values,
+            use_cache=True,
+        )
+        if output.past_key_values is None:
+            raise RuntimeError("the model did not return a KV cache")
+        past_key_values = output.past_key_values
+        logits = output.logits[:, -1, :]
 
         if temperature == 0:
             next_token = logits.argmax(dim=-1, keepdim=True)

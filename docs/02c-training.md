@@ -18,6 +18,10 @@ TinyStories JSONL
     → checkpoint
 ```
 
+Inference uses the same model weights but enables a per-layer KV cache. The
+prompt is processed once, and later decoding calls normally process only the
+newest token.
+
 ## Run it
 
 First prepare the dataset using [01-data-preparation.md](./01-data-preparation.md).
@@ -84,7 +88,9 @@ checkpoints/deepseek-tiny.pt
 The root-level `inference.py` script loads the newest `.pt` file in the
 `checkpoints/` directory when no explicit checkpoint is supplied. It rebuilds
 the model from the matching JSON configuration, loads the saved model weights,
-encodes the prompt with the byte tokenizer, and generates one token at a time.
+encodes the prompt with the byte tokenizer, builds a KV cache during prompt
+prefill, and then generates one token at a time without recomputing old K/V
+projections.
 
 ### `inference.py`
 
@@ -102,7 +108,7 @@ import torch
 
 from src.data.byte_tokenizer import ByteTokenizer
 from src.model.config import ModelConfig
-from src.model.deepseek import DeepSeek
+from src.model.deepseek import DeepSeek, ModelKVCache
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -176,10 +182,32 @@ def generate(
 
     device = next(model.parameters()).device
     token_ids = torch.tensor([tokenizer.encode(prompt)], dtype=torch.long, device=device)
+    past_key_values: ModelKVCache | None = None
+
     for _ in range(max_new_tokens):
-        # Keep only the newest context if generation reaches the position limit.
-        context = token_ids[:, -model.config.max_position_embeddings :]
-        logits = model(context).logits[:, -1, :]
+        # The first call processes the complete prompt and builds every layer's
+        # cache. Later calls normally process only the newest generated token.
+        cached_length = 0
+        if past_key_values is not None:
+            cached_length = past_key_values[0][0].shape[2]
+
+        if past_key_values is None or cached_length >= model.config.max_position_embeddings:
+            # At the context limit, discard the old cache and rebuild it from the
+            # newest window. This also restarts learned positions at zero.
+            model_input = token_ids[:, -model.config.max_position_embeddings :]
+            past_key_values = None
+        else:
+            model_input = token_ids[:, -1:]
+
+        output = model(
+            model_input,
+            past_key_values=past_key_values,
+            use_cache=True,
+        )
+        if output.past_key_values is None:
+            raise RuntimeError("the model did not return a KV cache")
+        past_key_values = output.past_key_values
+        logits = output.logits[:, -1, :]
 
         if temperature == 0:
             next_token = logits.argmax(dim=-1, keepdim=True)
@@ -391,13 +419,17 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from typing import cast
 
 import torch
 from torch import Tensor, nn
 from torch.nn import functional as F
 
-from .attention import CausalSelfAttention, LearnedPositionalEmbedding
+from .attention import KVCache, CausalSelfAttention, LearnedPositionalEmbedding
 from .config import ModelConfig
+
+# The model keeps one independent (K, V) pair for every decoder layer.
+ModelKVCache = tuple[KVCache, ...]
 
 
 class DecoderBlock(nn.Module):
@@ -432,20 +464,45 @@ class DecoderBlock(nn.Module):
             nn.Linear(config.intermediate_size, hidden_size, bias=config.attention_bias),
         )
 
-    def forward(self, hidden_states: Tensor, attention_mask: Tensor | None = None) -> Tensor:
+    def forward(
+        self,
+        hidden_states: Tensor,
+        attention_mask: Tensor | None = None,
+        past_key_value: KVCache | None = None,
+        *,
+        use_cache: bool = False,
+    ) -> Tensor | tuple[Tensor, KVCache]:
         """Apply attention, then the feed-forward network, with residuals."""
 
         # First sublayer: x = x + Attention(LayerNorm(x)).
         attention_input = self.input_layernorm(hidden_states)
-        hidden_states = hidden_states + self.attention(
+        attention_result = self.attention(
             attention_input,
             attention_mask=attention_mask,
+            past_key_value=past_key_value,
+            use_cache=use_cache,
         )
+        if use_cache:
+            # `use_cache=True` makes attention return both output and updated K/V.
+            attention_output, present_key_value = cast(
+                tuple[Tensor, KVCache],
+                attention_result,
+            )
+        else:
+            attention_output = cast(Tensor, attention_result)
+            present_key_value = None
+        hidden_states = hidden_states + attention_output
 
         # Second sublayer: x = x + MLP(LayerNorm(x)). Both residual additions
         # preserve the [B, T, D] shape expected by the next decoder block.
         mlp_input = self.post_attention_layernorm(hidden_states)
-        return hidden_states + self.mlp(mlp_input)
+        hidden_states = hidden_states + self.mlp(mlp_input)
+
+        # Training keeps the original Tensor-only path. Incremental inference
+        # additionally carries this layer's cache to the next generated token.
+        if use_cache:
+            return hidden_states, cast(KVCache, present_key_value)
+        return hidden_states
 
 
 @dataclass
@@ -457,6 +514,9 @@ class DeepSeekOutput:
 
     # Inference leaves loss as None; training supplies labels to compute it.
     loss: Tensor | None = None
+
+    # Incremental inference receives one updated K/V pair per decoder layer.
+    past_key_values: ModelKVCache | None = None
 
 
 class DeepSeek(nn.Module):
@@ -519,6 +579,9 @@ class DeepSeek(nn.Module):
         input_ids: Tensor,
         labels: Tensor | None = None,
         attention_mask: Tensor | None = None,
+        past_key_values: ModelKVCache | None = None,
+        *,
+        use_cache: bool = False,
     ) -> DeepSeekOutput:
         """Run embeddings, all decoder blocks, and the vocabulary head."""
 
@@ -538,18 +601,58 @@ class DeepSeek(nn.Module):
         if labels is not None and labels.shape != input_ids.shape:
             raise ValueError("labels must have the same shape as input_ids")
 
-        # Convert IDs and positions into one initial hidden vector per token.
+        # KV caching is an inference optimization. Keeping it out of the labeled
+        # training path avoids retaining old computation graphs across batches.
+        if labels is not None and (past_key_values is not None or use_cache):
+            raise ValueError("KV caching is supported only when labels are omitted")
+        if past_key_values is not None and not use_cache:
+            raise ValueError("past_key_values requires use_cache=True")
+        if past_key_values is not None and len(past_key_values) != len(self.layers):
+            raise ValueError("past_key_values must contain one cache per decoder layer")
+
+        # Every layer must describe the same already-processed prefix length.
+        past_length = 0
+        if past_key_values is not None:
+            cache_lengths: set[int] = set()
+            for key_cache, value_cache in past_key_values:
+                if key_cache.ndim != 4 or value_cache.ndim != 4:
+                    raise ValueError("each layer cache must have shape [B, H, T, Dh]")
+                cache_lengths.add(key_cache.shape[2])
+                cache_lengths.add(value_cache.shape[2])
+            if len(cache_lengths) != 1:
+                raise ValueError("all key/value caches must have the same sequence length")
+            past_length = cache_lengths.pop()
+
+        # The new tokens continue after the cached prefix in the learned position table.
         sequence_length = input_ids.shape[1]
+        total_sequence_length = past_length + sequence_length
+        if total_sequence_length > self.config.max_position_embeddings:
+            raise ValueError("cached and current tokens exceed max_position_embeddings")
+
+        # Convert IDs and positions into one initial hidden vector per token.
         hidden_states = self.token_embeddings(input_ids)
         hidden_states = hidden_states + self.position_embeddings(
             sequence_length,
+            start_position=past_length,
             device=input_ids.device,
         )
 
         # Every block consumes and returns [B, T, D], so the same variable can
         # carry the residual stream through the complete decoder stack.
-        for block in self.layers:
-            hidden_states = block(hidden_states, attention_mask=attention_mask)
+        present_key_values: list[KVCache] = []
+        for layer_index, block in enumerate(self.layers):
+            layer_past = None if past_key_values is None else past_key_values[layer_index]
+            block_result = block(
+                hidden_states,
+                attention_mask=attention_mask,
+                past_key_value=layer_past,
+                use_cache=use_cache,
+            )
+            if use_cache:
+                hidden_states, layer_cache = cast(tuple[Tensor, KVCache], block_result)
+                present_key_values.append(layer_cache)
+            else:
+                hidden_states = cast(Tensor, block_result)
 
         # Produce unnormalized next-token scores for every position.
         logits = self.lm_head(self.final_layernorm(hidden_states))
@@ -563,7 +666,11 @@ class DeepSeek(nn.Module):
             )
 
         # A structured return keeps inference and training on the same model API.
-        return DeepSeekOutput(logits=logits, loss=loss)
+        return DeepSeekOutput(
+            logits=logits,
+            loss=loss,
+            past_key_values=tuple(present_key_values) if use_cache else None,
+        )
 
 
 @dataclass(frozen=True)
@@ -886,6 +993,7 @@ Included in this runnable stage:
 - AdamW, warmup/cosine scheduling, gradient clipping
 - Final checkpoint saving with model, optimizer, scheduler, and step state
 - Model-weight loading for inference
+- Per-layer KV-cache reuse during autoregressive inference
 - TensorBoard metric logging
 
 The large `configs/deepseek_v3.json` remains a dimension reference. Use

@@ -5,8 +5,9 @@ current educational model. The implementation intentionally keeps projection,
 head reshaping, masking, softmax, value mixing, and output projection together
 inside one readable `forward` method.
 
-This stage does not implement KV caching, grouped-query attention,
-multi-query attention, or multi-head latent attention.
+The attention remains ordinary multi-head attention. It now supports a normal
+per-head K/V cache for incremental inference, but it does not implement
+grouped-query attention, multi-query attention, or multi-head latent attention.
 
 ## What this step builds
 
@@ -36,6 +37,7 @@ The current classes are deliberately small:
 - `SelfAttention` selects one non-causal head.
 - `CausalSelfAttention` enables the causal mask used by decoder blocks.
 - `LearnedPositionalEmbedding` supplies one learned vector per position.
+- `KVCache` stores one layer's keys and values as `[B, H, T, Dh]` tensors.
 
 ## Architecture diagram
 
@@ -89,15 +91,24 @@ Create `src/model/` and create `src/model/__init__.py` with this public API:
 # Re-export building blocks so callers do not need to know internal file layout.
 from .attention import (
     CausalSelfAttention,
+    KVCache,
     LearnedPositionalEmbedding,
     MultiHeadAttention,
     SelfAttention,
 )
 from .config import ModelConfig, default_config_path, load_default_config
-from .deepseek import DecoderBlock, DeepSeek, DeepSeekOutput, DeepSeekTrainer, TrainingConfig
+from .deepseek import (
+    DecoderBlock,
+    DeepSeek,
+    DeepSeekOutput,
+    DeepSeekTrainer,
+    ModelKVCache,
+    TrainingConfig,
+)
 
 __all__ = [
     "CausalSelfAttention",
+    "KVCache",
     "LearnedPositionalEmbedding",
     "MultiHeadAttention",
     "SelfAttention",
@@ -108,6 +119,7 @@ __all__ = [
     "DeepSeek",
     "DeepSeekOutput",
     "DeepSeekTrainer",
+    "ModelKVCache",
     "TrainingConfig",
 ]
 ```
@@ -125,6 +137,9 @@ import math
 
 import torch
 from torch import Tensor, nn
+
+# One decoder layer caches its projected keys and values as [B, H, T, Dh].
+KVCache = tuple[Tensor, Tensor]
 
 
 class MultiHeadAttention(nn.Module):
@@ -173,10 +188,19 @@ class MultiHeadAttention(nn.Module):
         self,
         hidden_states: Tensor,
         attention_mask: Tensor | None = None,
+        past_key_value: KVCache | None = None,
         *,
         return_attention: bool = False,
-    ) -> Tensor | tuple[Tensor, Tensor]:
+        use_cache: bool = False,
+    ) -> Tensor | tuple[Tensor, Tensor] | tuple[Tensor, KVCache]:
         """Project, attend, merge heads, and project back to ``embed_dim``."""
+
+        # Cache output and attention-weight output are separate teaching/debugging
+        # modes; keeping them exclusive makes each return shape unambiguous.
+        if return_attention and use_cache:
+            raise ValueError("return_attention and use_cache cannot both be enabled")
+        if use_cache and not self.causal:
+            raise ValueError("KV caching is supported only for causal attention")
 
         # Attention expects one vector per token: batch B, sequence T, width D.
         if hidden_states.ndim != 3:
@@ -204,27 +228,59 @@ class MultiHeadAttention(nn.Module):
             batch, sequence, self.num_heads, self.head_dim
         ).transpose(1, 2)
 
+        # During incremental inference, K and V for earlier tokens have already
+        # been projected by this layer. Append only the new token projections.
+        past_length = 0
+        if past_key_value is not None:
+            if not self.causal:
+                raise ValueError("past_key_value is supported only for causal attention")
+            past_key, past_value = past_key_value
+            expected_prefix = (batch, self.num_heads)
+            if past_key.ndim != 4 or past_value.ndim != 4:
+                raise ValueError("cached keys and values must have shape [B, H, T, Dh]")
+            if past_key.shape != past_value.shape:
+                raise ValueError("cached keys and values must have identical shapes")
+            if past_key.shape[:2] != expected_prefix or past_key.shape[3] != self.head_dim:
+                raise ValueError("cached keys and values do not match this attention layer")
+            if (
+                past_key.device != key.device
+                or past_value.device != value.device
+                or past_key.dtype != key.dtype
+                or past_value.dtype != value.dtype
+            ):
+                raise ValueError("cached keys and values must match the current device and dtype")
+
+            past_length = past_key.shape[2]
+            key = torch.cat((past_key, key), dim=2)
+            value = torch.cat((past_value, value), dim=2)
+
+        # `present_key_value` contains every position available after this call
+        # and becomes this layer's input cache on the next generation step.
+        present_key_value = (key, value)
+        key_length = key.shape[2]
+
         # Every query is compared with every key in the same head. Dividing by
         # sqrt(Dh) prevents large dot products from saturating the softmax:
-        # [B, H, T, Dh] @ [B, H, Dh, T] -> [B, H, T, T].
+        # [B, H, Q, Dh] @ [B, H, Dh, K] -> [B, H, Q, K].
         scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(self.head_dim)
 
         if self.causal:
-            # The lower triangle contains positions at or before each query.
-            # Its [T, T] shape broadcasts over the batch and head dimensions.
+            # A cached query starts at absolute position `past_length`, so the
+            # diagonal offset lets query i see keys through past_length + i.
+            # For a one-token cached step, [1, K] is entirely visible.
             visible = torch.ones(
                 sequence,
-                sequence,
+                key_length,
                 dtype=torch.bool,
                 device=hidden_states.device,
-            ).tril()
+            ).tril(diagonal=past_length)
 
             # Hidden future positions receive the smallest representable value,
             # which makes their probability effectively zero after softmax.
             scores = scores.masked_fill(~visible, torch.finfo(scores.dtype).min)
         if attention_mask is not None:
             # In this API True means visible and False means blocked. The mask
-            # must be broadcastable to [B, H, T, T].
+            # must be broadcastable to [B, H, query_length, key_length].
             if attention_mask.dtype is not torch.bool:
                 raise TypeError("attention_mask must have boolean dtype")
             scores = scores.masked_fill(~attention_mask, torch.finfo(scores.dtype).min)
@@ -234,7 +290,7 @@ class MultiHeadAttention(nn.Module):
         weights = self.dropout(torch.softmax(scores, dim=-1))
 
         # Use those probabilities to take a weighted sum of value vectors:
-        # [B, H, T, T] @ [B, H, T, Dh] -> [B, H, T, Dh].
+        # [B, H, Q, K] @ [B, H, K, Dh] -> [B, H, Q, Dh].
         attended = torch.matmul(weights, value)
 
         # Return from separate heads to one vector per token. `contiguous` makes
@@ -245,9 +301,13 @@ class MultiHeadAttention(nn.Module):
         # information from all heads before the decoder's residual addition.
         output = self.out_proj(attended)
 
-        # Attention probabilities are optional because training normally needs
-        # only the transformed hidden states; tests and visualizations may need both.
-        return (output, weights) if return_attention else output
+        # Inference requests the updated cache, while tests and visualizations may
+        # request attention probabilities. Ordinary training returns only output.
+        if use_cache:
+            return output, present_key_value
+        if return_attention:
+            return output, weights
+        return output
 
 
 class SelfAttention(MultiHeadAttention):
@@ -284,18 +344,30 @@ class LearnedPositionalEmbedding(nn.Module):
         self.max_sequence_length = max_sequence_length
         self.embedding = nn.Embedding(max_sequence_length, embed_dim)
 
-    def forward(self, sequence_length: int, *, device: torch.device | None = None) -> Tensor:
+    def forward(
+        self,
+        sequence_length: int,
+        *,
+        start_position: int = 0,
+        device: torch.device | None = None,
+    ) -> Tensor:
         """Return position vectors with shape ``[1, sequence_length, embed_dim]``."""
 
         # Reject invalid lengths before indexing the finite embedding table.
         if sequence_length <= 0:
             raise ValueError("sequence_length must be positive")
-        if sequence_length > self.max_sequence_length:
-            raise ValueError("sequence length exceeds max_sequence_length")
+        if start_position < 0:
+            raise ValueError("start_position must be non-negative")
+        if start_position + sequence_length > self.max_sequence_length:
+            raise ValueError("position range exceeds max_sequence_length")
 
         # The leading size-one batch axis lets this tensor broadcast over every
         # example when it is added to token embeddings shaped [B, T, D].
-        positions = torch.arange(sequence_length, device=device)
+        positions = torch.arange(
+            start_position,
+            start_position + sequence_length,
+            device=device,
+        )
         return self.embedding(positions).unsqueeze(0)
 ```
 
@@ -329,6 +401,8 @@ import pytest
 import torch
 
 from src.model.attention import CausalSelfAttention, LearnedPositionalEmbedding, MultiHeadAttention, SelfAttention
+from src.model.config import ModelConfig
+from src.model.deepseek import DeepSeek
 
 
 def test_multi_head_attention_preserves_shape() -> None:
@@ -378,6 +452,67 @@ def test_attention_rejects_invalid_head_configuration() -> None:
     # The hidden width must divide evenly into the requested number of heads.
     with pytest.raises(ValueError, match="divisible"):
         MultiHeadAttention(embed_dim=10, num_heads=3)
+
+
+def test_cached_attention_matches_full_causal_attention() -> None:
+    # Incremental attention must reproduce a single full-sequence forward pass.
+    torch.manual_seed(1)
+    attention = CausalSelfAttention(embed_dim=12, num_heads=3).eval()
+    hidden_states = torch.randn(2, 5, 12)
+
+    full_output = attention(hidden_states)
+    first_output, cache = attention(hidden_states[:, :3], use_cache=True)
+    fourth_output, cache = attention(
+        hidden_states[:, 3:4],
+        past_key_value=cache,
+        use_cache=True,
+    )
+    fifth_output, cache = attention(
+        hidden_states[:, 4:5],
+        past_key_value=cache,
+        use_cache=True,
+    )
+    cached_output = torch.cat((first_output, fourth_output, fifth_output), dim=1)
+
+    assert torch.allclose(cached_output, full_output, atol=1e-6)
+    assert cache[0].shape == (2, 3, 5, 4)
+    assert cache[1].shape == (2, 3, 5, 4)
+
+
+def test_cached_model_matches_full_sequence_logits() -> None:
+    # This end-to-end check also proves cached tokens use continued positions.
+    torch.manual_seed(2)
+    config = ModelConfig(
+        vocab_size=32,
+        max_position_embeddings=16,
+        hidden_size=12,
+        num_hidden_layers=2,
+        num_attention_heads=3,
+        num_key_value_heads=3,
+        head_dim=4,
+        intermediate_size=24,
+        torch_dtype="float32",
+    )
+    model = DeepSeek(config).eval()
+    input_ids = torch.tensor([[1, 5, 9, 4, 2]])
+
+    full_logits = model(input_ids).logits
+    past_key_values = None
+    cached_logits = []
+    for token_index in range(input_ids.shape[1]):
+        output = model(
+            input_ids[:, token_index : token_index + 1],
+            past_key_values=past_key_values,
+            use_cache=True,
+        )
+        assert output.past_key_values is not None
+        past_key_values = output.past_key_values
+        cached_logits.append(output.logits)
+
+    assert torch.allclose(torch.cat(cached_logits, dim=1), full_logits, atol=1e-6)
+    assert past_key_values is not None
+    assert len(past_key_values) == config.num_hidden_layers
+    assert past_key_values[0][0].shape == (1, 3, 5, 4)
 ```
 
 ## Step 5: reproduce and verify

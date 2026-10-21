@@ -2,6 +2,8 @@ import pytest
 import torch
 
 from src.model.attention import CausalSelfAttention, LearnedPositionalEmbedding, MultiHeadAttention, SelfAttention
+from src.model.config import ModelConfig
+from src.model.deepseek import DeepSeek
 
 
 def test_multi_head_attention_preserves_shape() -> None:
@@ -51,3 +53,64 @@ def test_attention_rejects_invalid_head_configuration() -> None:
     # The hidden width must divide evenly into the requested number of heads.
     with pytest.raises(ValueError, match="divisible"):
         MultiHeadAttention(embed_dim=10, num_heads=3)
+
+
+def test_cached_attention_matches_full_causal_attention() -> None:
+    # Incremental attention must reproduce a single full-sequence forward pass.
+    torch.manual_seed(1)
+    attention = CausalSelfAttention(embed_dim=12, num_heads=3).eval()
+    hidden_states = torch.randn(2, 5, 12)
+
+    full_output = attention(hidden_states)
+    first_output, cache = attention(hidden_states[:, :3], use_cache=True)
+    fourth_output, cache = attention(
+        hidden_states[:, 3:4],
+        past_key_value=cache,
+        use_cache=True,
+    )
+    fifth_output, cache = attention(
+        hidden_states[:, 4:5],
+        past_key_value=cache,
+        use_cache=True,
+    )
+    cached_output = torch.cat((first_output, fourth_output, fifth_output), dim=1)
+
+    assert torch.allclose(cached_output, full_output, atol=1e-6)
+    assert cache[0].shape == (2, 3, 5, 4)
+    assert cache[1].shape == (2, 3, 5, 4)
+
+
+def test_cached_model_matches_full_sequence_logits() -> None:
+    # This end-to-end check also proves cached tokens use continued positions.
+    torch.manual_seed(2)
+    config = ModelConfig(
+        vocab_size=32,
+        max_position_embeddings=16,
+        hidden_size=12,
+        num_hidden_layers=2,
+        num_attention_heads=3,
+        num_key_value_heads=3,
+        head_dim=4,
+        intermediate_size=24,
+        torch_dtype="float32",
+    )
+    model = DeepSeek(config).eval()
+    input_ids = torch.tensor([[1, 5, 9, 4, 2]])
+
+    full_logits = model(input_ids).logits
+    past_key_values = None
+    cached_logits = []
+    for token_index in range(input_ids.shape[1]):
+        output = model(
+            input_ids[:, token_index : token_index + 1],
+            past_key_values=past_key_values,
+            use_cache=True,
+        )
+        assert output.past_key_values is not None
+        past_key_values = output.past_key_values
+        cached_logits.append(output.logits)
+
+    assert torch.allclose(torch.cat(cached_logits, dim=1), full_logits, atol=1e-6)
+    assert past_key_values is not None
+    assert len(past_key_values) == config.num_hidden_layers
+    assert past_key_values[0][0].shape == (1, 3, 5, 4)
