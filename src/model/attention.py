@@ -1,8 +1,4 @@
-"""Standard self-attention building blocks.
-
-This stage intentionally implements ordinary multi-head attention. It does not
-include KV caching, multi-query attention, or latent attention variants.
-"""
+"""Simple self-attention components used by the educational decoder."""
 
 from __future__ import annotations
 
@@ -12,28 +8,21 @@ import torch
 from torch import Tensor, nn
 
 
-def _validate_hidden_states(hidden_states: Tensor, embed_dim: int) -> None:
-    # Attention expects a batch of token sequences, not a single vector.
-    if hidden_states.ndim != 3:
-        raise ValueError("hidden_states must have shape (batch, sequence, embed_dim)")
-    if hidden_states.shape[-1] != embed_dim:
-        raise ValueError(f"expected embedding size {embed_dim}, got {hidden_states.shape[-1]}")
-    if hidden_states.shape[1] == 0:
-        raise ValueError("sequence length must be greater than zero")
-
-
 class MultiHeadAttention(nn.Module):
-    """Scaled dot-product multi-head attention.
+    """Scaled dot-product attention for tensors shaped ``[B, T, D]``."""
 
-    Inputs use the shape ``(batch, sequence, embed_dim)``. A boolean
-    ``attention_mask`` may be broadcast to ``(batch, heads, query, key)``;
-    ``True`` means that a position is visible. When ``causal=True``, future
-    key positions are hidden automatically.
-    """
-
-    def __init__(self, embed_dim: int, num_heads: int, dropout: float = 0.0, bias: bool = True, causal: bool = False) -> None:
+    def __init__(
+        self,
+        embed_dim: int,
+        num_heads: int,
+        dropout: float = 0.0,
+        bias: bool = True,
+        causal: bool = False,
+    ) -> None:
         super().__init__()
-        # These checks catch shape errors before projection parameters are used.
+
+        # Every head receives an equal slice of the embedding dimension, so all
+        # dimensions must be positive and `embed_dim` must divide evenly.
         if embed_dim <= 0:
             raise ValueError("embed_dim must be positive")
         if num_heads <= 0:
@@ -43,21 +32,23 @@ class MultiHeadAttention(nn.Module):
         if not 0.0 <= dropout < 1.0:
             raise ValueError("dropout must be in the range [0, 1)")
 
+        # D = H * Dh. For the reference config: 7168 = 128 * 56.
         self.embed_dim = embed_dim
         self.num_heads = num_heads
         self.head_dim = embed_dim // num_heads
+
+        # `causal` controls whether token t may read tokens after position t.
         self.causal = causal
-        # Separate projections let each head learn query, key, and value features.
+
+        # These four matrices are learned independently. Q and K decide which
+        # tokens interact, V carries content, and WO mixes the merged heads.
         self.q_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
         self.k_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
         self.v_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
         self.out_proj = nn.Linear(embed_dim, embed_dim, bias=bias)
-        self.dropout = nn.Dropout(dropout)
 
-    def _split_heads(self, states: Tensor) -> Tensor:
-        batch, sequence, _ = states.shape
-        # Move heads before sequence so matrix multiplication runs per head.
-        return states.view(batch, sequence, self.num_heads, self.head_dim).transpose(1, 2)
+        # Dropout applies to normalized attention probabilities during training.
+        self.dropout = nn.Dropout(dropout)
 
     def forward(
         self,
@@ -66,69 +57,124 @@ class MultiHeadAttention(nn.Module):
         *,
         return_attention: bool = False,
     ) -> Tensor | tuple[Tensor, Tensor]:
-        _validate_hidden_states(hidden_states, self.embed_dim)
+        """Project, attend, merge heads, and project back to ``embed_dim``."""
+
+        # Attention expects one vector per token: batch B, sequence T, width D.
+        if hidden_states.ndim != 3:
+            raise ValueError("hidden_states must have shape (batch, sequence, embed_dim)")
+        if hidden_states.shape[-1] != self.embed_dim:
+            raise ValueError(
+                f"expected embedding size {self.embed_dim}, got {hidden_states.shape[-1]}"
+            )
+        if hidden_states.shape[1] == 0:
+            raise ValueError("sequence length must be greater than zero")
+
+        # Only B and T vary at runtime; D was fixed when this module was built.
         batch, sequence, _ = hidden_states.shape
 
-        # Self-attention uses the same hidden states to produce Q, K, and V.
-        query = self._split_heads(self.q_proj(hidden_states))
-        key = self._split_heads(self.k_proj(hidden_states))
-        value = self._split_heads(self.v_proj(hidden_states))
-        # Scaling keeps dot products numerically stable as head dimensions grow.
+        # Each projection starts as [B, T, D]. `view` exposes H independent
+        # heads, and `transpose` puts H before T for batched matrix products:
+        # [B, T, D] -> [B, T, H, Dh] -> [B, H, T, Dh].
+        query = self.q_proj(hidden_states).view(
+            batch, sequence, self.num_heads, self.head_dim
+        ).transpose(1, 2)
+        key = self.k_proj(hidden_states).view(
+            batch, sequence, self.num_heads, self.head_dim
+        ).transpose(1, 2)
+        value = self.v_proj(hidden_states).view(
+            batch, sequence, self.num_heads, self.head_dim
+        ).transpose(1, 2)
+
+        # Every query is compared with every key in the same head. Dividing by
+        # sqrt(Dh) prevents large dot products from saturating the softmax:
+        # [B, H, T, Dh] @ [B, H, Dh, T] -> [B, H, T, T].
         scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(self.head_dim)
 
         if self.causal:
-            # A lower-triangular mask prevents a token from seeing future tokens.
-            causal_mask = torch.ones(sequence, sequence, dtype=torch.bool, device=hidden_states.device).tril()
-            scores = scores.masked_fill(~causal_mask, torch.finfo(scores.dtype).min)
+            # The lower triangle contains positions at or before each query.
+            # Its [T, T] shape broadcasts over the batch and head dimensions.
+            visible = torch.ones(
+                sequence,
+                sequence,
+                dtype=torch.bool,
+                device=hidden_states.device,
+            ).tril()
+
+            # Hidden future positions receive the smallest representable value,
+            # which makes their probability effectively zero after softmax.
+            scores = scores.masked_fill(~visible, torch.finfo(scores.dtype).min)
         if attention_mask is not None:
-            # Caller masks can hide padding or other unavailable positions.
+            # In this API True means visible and False means blocked. The mask
+            # must be broadcastable to [B, H, T, T].
             if attention_mask.dtype is not torch.bool:
                 raise TypeError("attention_mask must have boolean dtype")
             scores = scores.masked_fill(~attention_mask, torch.finfo(scores.dtype).min)
 
-        # Softmax converts scores into probabilities over key positions.
-        weights = torch.softmax(scores, dim=-1)
-        weights = self.dropout(weights)
-        # Weighted values are the information selected by each query token.
+        # Softmax converts each query row into probabilities over key positions.
+        # The probabilities sum to one before dropout is applied.
+        weights = self.dropout(torch.softmax(scores, dim=-1))
+
+        # Use those probabilities to take a weighted sum of value vectors:
+        # [B, H, T, T] @ [B, H, T, Dh] -> [B, H, T, Dh].
         attended = torch.matmul(weights, value)
-        # Recombine heads back into the model's hidden dimension.
+
+        # Return from separate heads to one vector per token. `contiguous` makes
+        # the transposed memory layout safe to flatten: [B, H, T, Dh] -> [B, T, D].
         attended = attended.transpose(1, 2).contiguous().view(batch, sequence, self.embed_dim)
+
+        # WO is not a reshape: it is a learned D x D transformation that mixes
+        # information from all heads before the decoder's residual addition.
         output = self.out_proj(attended)
-        if return_attention:
-            return output, weights
-        return output
+
+        # Attention probabilities are optional because training normally needs
+        # only the transformed hidden states; tests and visualizations may need both.
+        return (output, weights) if return_attention else output
 
 
 class SelfAttention(MultiHeadAttention):
-    """Ordinary single-head self-attention without a causal restriction."""
+    """Non-causal single-head attention kept as a simple specialization."""
 
     def __init__(self, embed_dim: int, dropout: float = 0.0, bias: bool = True) -> None:
-        super().__init__(embed_dim, num_heads=1, dropout=dropout, bias=bias, causal=False)
+        # One head and no causal mask provide the simplest self-attention case.
+        super().__init__(embed_dim, 1, dropout=dropout, bias=bias, causal=False)
 
 
 class CausalSelfAttention(MultiHeadAttention):
-    """Multi-head self-attention that cannot read future tokens."""
+    """Causal multi-head attention used inside every decoder block."""
 
-    def __init__(self, embed_dim: int, num_heads: int, dropout: float = 0.0, bias: bool = True) -> None:
+    def __init__(
+        self,
+        embed_dim: int,
+        num_heads: int,
+        dropout: float = 0.0,
+        bias: bool = True,
+    ) -> None:
+        # Decoder language modeling needs multiple heads plus future-token masking.
         super().__init__(embed_dim, num_heads, dropout=dropout, bias=bias, causal=True)
 
 
 class LearnedPositionalEmbedding(nn.Module):
-    """Learned absolute positional embeddings for a fixed context length."""
+    """Learned absolute position vectors for a fixed maximum sequence length."""
 
     def __init__(self, max_sequence_length: int, embed_dim: int) -> None:
         super().__init__()
+
+        # The embedding table needs one learned row for every allowed position.
         if max_sequence_length <= 0:
             raise ValueError("max_sequence_length must be positive")
         self.max_sequence_length = max_sequence_length
         self.embedding = nn.Embedding(max_sequence_length, embed_dim)
 
     def forward(self, sequence_length: int, *, device: torch.device | None = None) -> Tensor:
-        # Position IDs are generated at runtime so the same table works for any shorter sequence.
+        """Return position vectors with shape ``[1, sequence_length, embed_dim]``."""
+
+        # Reject invalid lengths before indexing the finite embedding table.
         if sequence_length <= 0:
             raise ValueError("sequence_length must be positive")
         if sequence_length > self.max_sequence_length:
-            raise ValueError("sequence_length exceeds max_sequence_length")
+            raise ValueError("sequence length exceeds max_sequence_length")
+
+        # The leading size-one batch axis lets this tensor broadcast over every
+        # example when it is added to token embeddings shaped [B, T, D].
         positions = torch.arange(sequence_length, device=device)
-        # The leading dimension broadcasts position vectors across the batch.
         return self.embedding(positions).unsqueeze(0)

@@ -155,8 +155,10 @@ state to:
 checkpoints/deepseek-tiny.pt
 ```
 
-Checkpoint loading is available through `DeepSeekTrainer.load_checkpoint` in
-`src/model/deepseek.py`.
+The training command writes model, optimizer, scheduler, and global-step state
+to the checkpoint. The current training pipeline does not resume optimizer
+state from an older checkpoint. The root-level `inference.py` loads the saved
+`model` weights for text generation.
 
 ## Git workflow
 
