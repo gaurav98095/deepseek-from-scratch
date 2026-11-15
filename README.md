@@ -2,21 +2,17 @@
 
 A clean PyTorch workspace for building and understanding a small DeepSeek-style language model from the ground up.
 
+Start with [Article 1 — Understanding DeepSeek](docs/01-understanding-deepseek.md), then read [Setting Up the DeepSeek Codebase](docs/02-setting-up-codebase.md) while using the notebook and implementation files alongside them.
+
 ## Repository layout
 
-- `configs/` — model and experiment configuration files.
-- `data/` — tokenization, dataset preparation, and data loading.
-- `model/` — model components such as RMSNorm, RoPE, attention, MLA, MoE, and transformer blocks.
-- `training/` — losses, optimization, training, evaluation, and checkpoints.
-- `inference/` — KV-cache handling and text generation.
-- `tests/` — shape, numerical, gradient, and integration tests.
-- `train.py` — entry point for training runs.
+- `src/model/` — model configuration, embeddings, and DeepSeek components.
+- `src/tests/` — shape, numerical, gradient, and integration tests.
+- `src/smoke_test.py` — small forward-pass check.
+- `docs/` — written explanations and architecture diagrams.
+- `notebooks/` — executable experiments and tensor-shape demonstrations.
+- `requirements.txt` — Python dependencies.
 
 The implementation will stay readable and modular: each component should be understandable on its own, tested, and then integrated into the growing model.
-
-## Configurations
-
-- `configs/tiny.yaml` — small configuration for fast local checks.
-- `configs/mini.yaml` — larger configuration for GPU experiments.
 
 Generated datasets, checkpoints, logs, and Python cache files are kept out of version control.

@@ -1,0 +1,12 @@
+# Core ML stack
+torch>=2.4
+numpy>=1.26
+
+# Configuration, data, and tokenization
+pyyaml>=6.0
+datasets>=2.20
+tokenizers>=0.19
+
+# Training utilities and tests
+tqdm>=4.66
+pytest>=8.0
