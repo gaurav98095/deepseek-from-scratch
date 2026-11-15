@@ -137,6 +137,7 @@ deepseek-from-scratch/
 ├── docs/          # explanations and diagrams
 ├── src/           # Python source package
 │   ├── model/     # model components
+│   ├── commands/  # runnable commands and checks
 │   ├── tests/     # automated checks
 │   └── smoke_test.py
 ├── notebooks/     # executable experiments

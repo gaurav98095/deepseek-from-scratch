@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620" role="img" aria-labelledby="title desc">
+  <title id="title">Vocabulary size tradeoff</title>
+  <desc id="desc">A larger vocabulary can shorten sequences but increases embedding and output projection parameters.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111827"/>
+      <stop offset="1" stop-color="#312e81"/>
+    </linearGradient>
+    <linearGradient id="short" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#047857"/>
+      <stop offset="1" stop-color="#34d399"/>
+    </linearGradient>
+    <linearGradient id="large" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9f1239"/>
+      <stop offset="1" stop-color="#fb7185"/>
+    </linearGradient>
+    <style>
+      .title { font: 700 31px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #f8fafc; }
+      .subtitle { font: 400 17px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #cbd5e1; }
+      .label { font: 700 20px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #fff; }
+      .small { font: 400 15px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #e2e8f0; }
+      .tiny { font: 400 13px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #cbd5e1; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="620" rx="28" fill="url(#bg)"/>
+  <text x="60" y="65" class="title">Vocabulary size is a tradeoff</text>
+  <text x="60" y="98" class="subtitle">More tokens can shorten sequences, but they make the embedding and output layers larger.</text>
+
+  <g transform="translate(80 170)">
+    <rect width="440" height="290" rx="24" fill="#064e3b" fill-opacity=".75" stroke="#34d399" stroke-opacity=".7"/>
+    <text x="220" y="55" text-anchor="middle" class="label">Larger vocabulary</text>
+    <rect x="55" y="95" width="150" height="48" rx="12" fill="url(#short)"/>
+    <text x="130" y="126" text-anchor="middle" class="label">Shorter text</text>
+    <rect x="235" y="95" width="150" height="48" rx="12" fill="#064e3b" stroke="#6ee7b7"/>
+    <text x="310" y="126" text-anchor="middle" class="small">fewer tokens</text>
+    <path d="M130 153 V207" stroke="#a7f3d0" stroke-width="3"/>
+    <path d="M310 153 V207" stroke="#a7f3d0" stroke-width="3"/>
+    <text x="220" y="245" text-anchor="middle" class="small">Lower sequence and KV-cache cost</text>
+  </g>
+
+  <g transform="translate(680 170)">
+    <rect width="440" height="290" rx="24" fill="#881337" fill-opacity=".75" stroke="#fb7185" stroke-opacity=".7"/>
+    <text x="220" y="55" text-anchor="middle" class="label">But the vocabulary table grows</text>
+    <rect x="55" y="95" width="150" height="48" rx="12" fill="url(#large)"/>
+    <text x="130" y="126" text-anchor="middle" class="label">More rows</text>
+    <rect x="235" y="95" width="150" height="48" rx="12" fill="#881337" stroke="#fda4af"/>
+    <text x="310" y="126" text-anchor="middle" class="small">larger LM head</text>
+    <path d="M130 153 V207" stroke="#fecdd3" stroke-width="3"/>
+    <path d="M310 153 V207" stroke="#fecdd3" stroke-width="3"/>
+    <text x="220" y="245" text-anchor="middle" class="small">More embedding and output parameters</text>
+  </g>
+
+  <text x="600" y="545" text-anchor="middle" class="small">For untied embeddings and output projection: total parameters = 2 × vocabulary size × hidden dimension.</text>
+</svg>

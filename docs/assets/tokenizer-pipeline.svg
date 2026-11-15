@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="650" viewBox="0 0 1400 650" role="img" aria-labelledby="title desc">
+  <title id="title">Tokenizer pipeline from text to model input</title>
+  <desc id="desc">Text is split into bytes, byte pair merges create token pieces, token IDs are produced, and embeddings feed the Transformer.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#111827"/>
+      <stop offset="1" stop-color="#164e63"/>
+    </linearGradient>
+    <linearGradient id="text" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#06b6d4"/>
+    </linearGradient>
+    <linearGradient id="bytes" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#047857"/>
+      <stop offset="1" stop-color="#34d399"/>
+    </linearGradient>
+    <linearGradient id="bpe" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#b45309"/>
+      <stop offset="1" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="ids" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7e22ce"/>
+      <stop offset="1" stop-color="#d946ef"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000" flood-opacity=".28"/>
+    </filter>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M0,0 L12,6 L0,12 Z" fill="#cbd5e1"/>
+    </marker>
+    <style>
+      .title { font: 700 31px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #f8fafc; }
+      .subtitle { font: 400 17px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #cbd5e1; }
+      .label { font: 700 19px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #fff; }
+      .small { font: 400 14px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #e2e8f0; }
+      .tiny { font: 400 13px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #cbd5e1; }
+    </style>
+  </defs>
+
+  <rect width="1400" height="650" rx="28" fill="url(#bg)"/>
+  <circle cx="1250" cy="80" r="180" fill="#38bdf8" opacity=".08"/>
+  <circle cx="80" cy="570" r="170" fill="#f472b6" opacity=".08"/>
+
+  <text x="70" y="65" class="title">From text to Transformer input</text>
+  <text x="70" y="98" class="subtitle">A byte-level BPE tokenizer learns compact pieces and assigns each piece an integer ID.</text>
+
+  <g filter="url(#shadow)">
+    <rect x="70" y="210" width="230" height="150" rx="20" fill="url(#text)"/>
+    <text x="185" y="255" text-anchor="middle" class="label">Text</text>
+    <text x="185" y="288" text-anchor="middle" class="small">"DeepSeek uses BPE."</text>
+    <text x="185" y="320" text-anchor="middle" class="tiny">human-readable input</text>
+
+    <rect x="365" y="210" width="230" height="150" rx="20" fill="url(#bytes)"/>
+    <text x="480" y="255" text-anchor="middle" class="label">UTF-8 bytes</text>
+    <text x="480" y="288" text-anchor="middle" class="small">[68, 101, 101, …]</text>
+    <text x="480" y="320" text-anchor="middle" class="tiny">base vocabulary: 0–255</text>
+
+    <rect x="660" y="180" width="230" height="210" rx="20" fill="url(#bpe)"/>
+    <text x="775" y="225" text-anchor="middle" class="label">BPE merges</text>
+    <text x="775" y="260" text-anchor="middle" class="small">frequent pairs become</text>
+    <text x="775" y="285" text-anchor="middle" class="small">larger learned pieces</text>
+    <text x="775" y="330" text-anchor="middle" class="small">"D" + "e" → "De"</text>
+    <text x="775" y="355" text-anchor="middle" class="small">"De" + "ep" → "Deep"</text>
+
+    <rect x="955" y="210" width="230" height="150" rx="20" fill="url(#ids)"/>
+    <text x="1070" y="255" text-anchor="middle" class="label">Token IDs</text>
+    <text x="1070" y="288" text-anchor="middle" class="small">[124, 982, 31, …]</text>
+    <text x="1070" y="320" text-anchor="middle" class="tiny">integers for the model</text>
+
+    <rect x="1250" y="210" width="90" height="150" rx="20" fill="#4c1d95" stroke="#e879f9" stroke-opacity=".6"/>
+    <text x="1295" y="255" text-anchor="middle" class="label" font-size="17">Embed</text>
+    <text x="1295" y="288" text-anchor="middle" class="small">vectors</text>
+    <text x="1295" y="320" text-anchor="middle" class="tiny">→ model</text>
+  </g>
+
+  <path d="M300 285 H365" stroke="#cbd5e1" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M595 285 H660" stroke="#cbd5e1" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M890 285 H955" stroke="#cbd5e1" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M1185 285 H1250" stroke="#cbd5e1" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <g transform="translate(190 490)">
+    <rect width="1020" height="72" rx="16" fill="#0f172a" fill-opacity=".55" stroke="#94a3b8" stroke-opacity=".35"/>
+    <text x="510" y="30" text-anchor="middle" class="label" font-size="17">Token IDs are identifiers, not meanings</text>
+    <text x="510" y="53" text-anchor="middle" class="small">The embedding layer learns useful vectors for those IDs during model training.</text>
+  </g>
+</svg>
