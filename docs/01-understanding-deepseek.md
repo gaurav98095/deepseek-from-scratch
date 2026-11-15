@@ -191,7 +191,7 @@ This is the core learning objective behind our entire implementation.
 
 We cannot start with 671B parameters. Instead, we'll build a smaller model with the same important architectural components.
 
-Here is the initial **Tiny-DeepSeek configuration** in `model/config.py` for learning and debugging.
+Here is the initial **Tiny-DeepSeek configuration** in `src/model/config.py` for learning and debugging.
 
 | Parameter                       | Original DeepSeek-V3 | Our Tiny-DeepSeek |
 | ------------------------------- | -------------------- | ----------------- |
@@ -223,7 +223,7 @@ Scaling should not change the core concepts.
 
 ## 6. Our first PyTorch implementation
 
-The configuration lives in `model/config.py` and acts as the source of truth for every component we implement later.
+The configuration lives in `src/model/config.py` and acts as the source of truth for every component we implement later.
 
 ```python
 from dataclasses import dataclass
@@ -264,12 +264,12 @@ For now, focus on the fact that a configuration describes **the dimensions and s
 
 ## 7. First hands-on experiment: token embeddings
 
-The first actual neural-network layer is the token embedding in `model/embeddings.py`.
+The first actual neural-network layer is the token embedding in `src/model/embeddings.py`.
 
 ```python
 import torch
 
-from model import DeepSeekConfig, TokenEmbedding
+from src.model import DeepSeekConfig, TokenEmbedding
 
 config = DeepSeekConfig()
 model = TokenEmbedding(config)
