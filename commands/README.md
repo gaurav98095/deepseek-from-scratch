@@ -67,6 +67,43 @@ python -m pytest src/tests/test_tokenizer.py -v
 
 These checks cover pair merging, text round-tripping, Unicode, EOS handling, vocabulary size, and invalid configuration values.
 
+## Article 4 — Preparing the Pretraining Dataset
+
+Prepare a bounded FineWeb-Edu sample from the repository root:
+
+```bash
+python -m src.data.prepare_data \
+  --max-documents 5000 \
+  --tokenizer-documents 1000 \
+  --tokenizer-vocab-size 350
+```
+
+Use a smaller smoke run first when checking the pipeline:
+
+```bash
+python -m src.data.prepare_data \
+  --max-documents 20 \
+  --tokenizer-documents 10 \
+  --tokenizer-vocab-size 300
+```
+
+Inspect the generated files:
+
+```bash
+python -m src.data.inspect_data
+```
+
+The generated files will live under `data/processed/`:
+
+```text
+tokenizer.json
+train.bin
+val.bin
+metadata.json
+```
+
+Do not commit generated datasets or binary token files.
+
 ## Run all current tests
 
 ```bash
