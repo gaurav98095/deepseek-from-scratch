@@ -104,6 +104,17 @@ metadata.json
 
 Do not commit generated datasets or binary token files.
 
+## Article 5 — Building the PyTorch DataLoader
+
+The data loader implementation lives under `src/data/dataset.py` and `src/data/dataloader.py`. Run the dataset checks with:
+
+```bash
+python -m pytest src/tests/test_dataset.py -v
+python -m pytest src/tests/test_dataloader.py -v
+```
+
+The loader reads `data/processed/train.bin` and `val.bin` with memory mapping and returns `[batch, sequence]` input-target pairs.
+
 ## Run all current tests
 
 ```bash
