@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="700" viewBox="0 0 1400 700" role="img" aria-labelledby="title desc">
+  <title id="title">Document splitting and next-token packing</title>
+  <desc id="desc">Documents are assigned to training or validation before token packing, and a sequence of T plus one tokens creates T input-target pairs.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#111827"/><stop offset="1" stop-color="#312e81"/></linearGradient>
+    <linearGradient id="train" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#047857"/><stop offset="1" stop-color="#34d399"/></linearGradient>
+    <linearGradient id="val" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9f1239"/><stop offset="1" stop-color="#fb7185"/></linearGradient>
+    <linearGradient id="tokens" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2563eb"/><stop offset="1" stop-color="#38bdf8"/></linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#000" flood-opacity=".28"/></filter>
+    <style>
+      .title { font: 700 31px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #f8fafc; }
+      .subtitle { font: 400 17px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #cbd5e1; }
+      .label { font: 700 19px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #fff; }
+      .small { font: 400 15px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #e2e8f0; }
+      .tiny { font: 400 13px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #cbd5e1; }
+    </style>
+  </defs>
+
+  <rect width="1400" height="700" rx="28" fill="url(#bg)"/>
+  <text x="70" y="65" class="title">Split documents first, then build sequences</text>
+  <text x="70" y="98" class="subtitle">Validation leakage is avoided at the document boundary; next-token targets require T + 1 tokens.</text>
+
+  <g filter="url(#shadow)">
+    <rect x="80" y="165" width="260" height="190" rx="22" fill="#172554" stroke="#60a5fa" stroke-opacity=".65"/>
+    <text x="210" y="210" text-anchor="middle" class="label">Documents</text>
+    <rect x="125" y="245" width="170" height="36" rx="9" fill="url(#train)"/>
+    <text x="210" y="269" text-anchor="middle" class="small">98% train</text>
+    <rect x="125" y="292" width="170" height="36" rx="9" fill="url(#val)"/>
+    <text x="210" y="316" text-anchor="middle" class="small">2% validation</text>
+
+    <rect x="430" y="165" width="350" height="190" rx="22" fill="#1e1b4b" stroke="#c084fc" stroke-opacity=".65"/>
+    <text x="605" y="210" text-anchor="middle" class="label">Token stream</text>
+    <text x="605" y="245" text-anchor="middle" class="small">… 10, 20, 30, 40, 50, 60 …</text>
+    <text x="605" y="283" text-anchor="middle" class="tiny">documents carry EOS markers</text>
+    <text x="605" y="316" text-anchor="middle" class="tiny">pack only after the split</text>
+
+    <rect x="870" y="165" width="440" height="190" rx="22" fill="#083344" stroke="#67e8f9" stroke-opacity=".65"/>
+    <text x="1090" y="210" text-anchor="middle" class="label">Sequence length T = 4</text>
+    <g transform="translate(930 250)">
+      <rect width="72" height="48" rx="9" fill="url(#tokens)"/><text x="36" y="31" text-anchor="middle" class="label">10</text>
+      <rect x="82" width="72" height="48" rx="9" fill="url(#tokens)"/><text x="118" y="31" text-anchor="middle" class="label">20</text>
+      <rect x="164" width="72" height="48" rx="9" fill="url(#tokens)"/><text x="200" y="31" text-anchor="middle" class="label">30</text>
+      <rect x="246" width="72" height="48" rx="9" fill="url(#tokens)"/><text x="282" y="31" text-anchor="middle" class="label">40</text>
+      <rect x="328" width="72" height="48" rx="9" fill="#64748b"/><text x="364" y="31" text-anchor="middle" class="label">50</text>
+    </g>
+    <text x="1090" y="330" text-anchor="middle" class="tiny">T + 1 = 5 token IDs are required</text>
+  </g>
+
+  <path d="M340 260 H430" stroke="#cbd5e1" stroke-width="3"/>
+  <path d="M780 260 H870" stroke="#cbd5e1" stroke-width="3"/>
+
+  <g transform="translate(190 465)">
+    <rect width="490" height="115" rx="20" fill="#064e3b" fill-opacity=".8" stroke="#6ee7b7" stroke-opacity=".6"/>
+    <text x="245" y="38" text-anchor="middle" class="label">Input IDs</text>
+    <text x="245" y="78" text-anchor="middle" class="small">[10, 20, 30, 40]</text>
+  </g>
+  <g transform="translate(720 465)">
+    <rect width="490" height="115" rx="20" fill="#881337" fill-opacity=".8" stroke="#fda4af" stroke-opacity=".6"/>
+    <text x="245" y="38" text-anchor="middle" class="label">Target IDs</text>
+    <text x="245" y="78" text-anchor="middle" class="small">[20, 30, 40, 50]</text>
+  </g>
+  <path d="M680 522 H720" stroke="#fde68a" stroke-width="3"/>
+  <text x="700" y="505" text-anchor="middle" class="tiny">shift by one</text>
+</svg>

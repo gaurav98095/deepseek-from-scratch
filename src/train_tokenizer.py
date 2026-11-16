@@ -1,6 +1,10 @@
 """Train and inspect a tokenizer on a small demonstration corpus."""
 
-from src.data.tokenizer import BPETokenizer
+try:
+    from src.data.tokenizer import BPETokenizer
+except ModuleNotFoundError:
+    # Supports running this file directly from a debugger or from src/.
+    from data.tokenizer import BPETokenizer
 
 
 def main() -> None:

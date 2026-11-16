@@ -1,6 +1,8 @@
 """A small byte-level Byte Pair Encoding tokenizer."""
 
 from collections import Counter
+import json
+from pathlib import Path
 
 
 def merge_pair(
@@ -110,6 +112,41 @@ class BPETokenizer:
             return b"".join(pieces).decode("utf-8")
         except UnicodeDecodeError as error:
             raise ValueError("Token IDs do not form valid UTF-8") from error
+
+    def save(self, path: str | Path) -> None:
+        """Save vocabulary bytes, merge order, and the EOS ID as JSON."""
+
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        state = {
+            "vocab": {
+                str(token_id): piece.hex()
+                for token_id, piece in self.vocab.items()
+            },
+            "merges": [
+                [left, right, new_id]
+                for (left, right), new_id in self.merges.items()
+            ],
+            "eos_id": self.eos_id,
+        }
+        path.write_text(json.dumps(state, indent=2), encoding="utf-8")
+
+    @classmethod
+    def load(cls, path: str | Path) -> "BPETokenizer":
+        """Load a tokenizer previously written by :meth:`save`."""
+
+        state = json.loads(Path(path).read_text(encoding="utf-8"))
+        tokenizer = cls()
+        tokenizer.vocab = {
+            int(token_id): bytes.fromhex(piece)
+            for token_id, piece in state["vocab"].items()
+        }
+        tokenizer.merges = {
+            (left, right): new_id
+            for left, right, new_id in state["merges"]
+        }
+        tokenizer.eos_id = state["eos_id"]
+        return tokenizer
 
     @property
     def vocab_size(self) -> int:
