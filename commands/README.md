@@ -115,6 +115,16 @@ python -m pytest src/tests/test_dataloader.py -v
 
 The loader reads `data/processed/train.bin` and `val.bin` with memory mapping and returns `[batch, sequence]` input-target pairs.
 
+## Article 6 — Token Embeddings and RMSNorm
+
+The RMSNorm implementation lives under `src/model/rmsnorm.py`. Run:
+
+```bash
+python -m pytest src/tests/test_rmsnorm.py -v
+```
+
+The tests cover the numerical formula, zero inputs, gradient flow, scale behavior, and BF16-safe statistics.
+
 ## Run all current tests
 
 ```bash
