@@ -125,6 +125,16 @@ python -m pytest src/tests/test_rmsnorm.py -v
 
 The tests cover the numerical formula, zero inputs, gradient flow, scale behavior, and BF16-safe statistics.
 
+## Article 7 — Causal Self-Attention
+
+The attention layer belongs in `src/model/attention.py`, with transformer integration in `src/model/transformer.py` and focused checks in `src/tests/test_attention.py`. Run the attention checks with:
+
+```bash
+python -m pytest src/tests/test_attention.py -v
+```
+
+The important checks cover output shapes, causal future-token isolation, finite gradients, and projection parameter counts.
+
 ## Run all current tests
 
 ```bash
@@ -152,4 +162,4 @@ Use the `python -m src...` form from the repository root. It keeps `src` on the 
 
 ## Current scope
 
-The repository currently contains the model skeleton and tokenizer work. Full attention, MLA, MoE, dataset preparation, training, and inference commands will be added when those parts exist in `src/`.
+The repository currently contains the attention-only model baseline, tokenizer, dataset preparation, and data-loading foundations. MLA, MoE, training, and inference commands will be added when those parts exist in `src/`.

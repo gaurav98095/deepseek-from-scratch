@@ -1,4 +1,4 @@
-"""Small forward-pass check for the initial model skeleton."""
+"""Small forward-pass check for the attention-based model baseline."""
 
 import torch
 
