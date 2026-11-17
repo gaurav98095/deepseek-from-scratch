@@ -5,6 +5,7 @@ from torch import nn
 
 from .config import DeepSeekConfig
 from .embeddings import TokenEmbedding
+from .rmsnorm import RMSNorm
 
 
 class DeepSeekSkeleton(nn.Module):
@@ -14,6 +15,7 @@ class DeepSeekSkeleton(nn.Module):
         super().__init__()
         self.config = config
         self.embed_tokens = TokenEmbedding(config)
+        self.norm = RMSNorm(config.dim, eps=1e-6)
         self.lm_head = nn.Linear(config.dim, config.vocab_size, bias=False)
 
     def forward(self, input_ids: torch.Tensor) -> torch.Tensor:
@@ -23,4 +25,5 @@ class DeepSeekSkeleton(nn.Module):
             raise ValueError("Sequence exceeds maximum length")
 
         hidden_states = self.embed_tokens(input_ids)
+        hidden_states = self.norm(hidden_states)
         return self.lm_head(hidden_states)
