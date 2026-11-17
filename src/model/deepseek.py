@@ -22,6 +22,7 @@ class DeepSeekSkeleton(nn.Module):
                     dim=config.dim,
                     n_heads=config.n_heads,
                     max_seq_len=config.max_seq_len,
+                    rope_theta=config.rope_theta,
                 )
                 for _ in range(config.n_layers)
             ]

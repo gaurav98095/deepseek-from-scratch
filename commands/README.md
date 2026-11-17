@@ -135,6 +135,18 @@ python -m pytest src/tests/test_attention.py -v
 
 The important checks cover output shapes, causal future-token isolation, finite gradients, and projection parameter counts.
 
+## Article 8 — Rotary Position Embeddings
+
+RoPE is implemented in `src/model/rope.py` and integrated into `src/model/attention.py`. Run the rotation and causal-attention checks with:
+
+```bash
+python -m pytest src/tests/test_rope.py -v
+```
+
+The checks cover shape preservation, length preservation, relative-position behavior, gradients, and causal masking after adding RoPE.
+
+The notebook adds the repository root to `sys.path` automatically, so its imports work when Jupyter is opened from either the repository root or the `notebooks/` directory.
+
 ## Run all current tests
 
 ```bash
@@ -162,4 +174,4 @@ Use the `python -m src...` form from the repository root. It keeps `src` on the 
 
 ## Current scope
 
-The repository currently contains the attention-only model baseline, tokenizer, dataset preparation, and data-loading foundations. MLA, MoE, training, and inference commands will be added when those parts exist in `src/`.
+The repository currently contains the attention and RoPE model baseline, tokenizer, dataset preparation, and data-loading foundations. MLA, MoE, training, and inference commands will be added when those parts exist in `src/`.
