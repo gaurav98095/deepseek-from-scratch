@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 270" role="img" aria-labelledby="title desc">
+  <title id="title">RoPE relative position</title>
+  <desc id="desc">Two pairs of positions have the same displacement after a common shift.</desc>
+  <defs>
+    <marker id="distance-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 Z" fill="#ea580c"/>
+    </marker>
+  </defs>
+  <rect width="900" height="270" rx="18" fill="#f8fafc"/>
+  <text x="42" y="48" font-family="sans-serif" font-size="20" font-weight="600" fill="#0f172a">Same relative displacement</text>
+  <g font-family="sans-serif" font-size="16" fill="#334155">
+    <text x="52" y="102">First pair</text>
+    <text x="52" y="188">Shifted pair</text>
+  </g>
+  <g stroke="#cbd5e1" stroke-width="3">
+    <line x1="170" y1="96" x2="820" y2="96"/>
+    <line x1="170" y1="182" x2="820" y2="182"/>
+  </g>
+  <g fill="#2563eb">
+    <circle cx="330" cy="96" r="10"/>
+    <circle cx="510" cy="96" r="10"/>
+    <circle cx="650" cy="182" r="10"/>
+    <circle cx="830" cy="182" r="10"/>
+  </g>
+  <g stroke="#ea580c" stroke-width="4" marker-end="url(#distance-arrow)">
+    <line x1="345" y1="96" x2="495" y2="96"/>
+    <line x1="665" y1="182" x2="815" y2="182"/>
+  </g>
+  <g font-family="monospace" font-size="16" fill="#0f172a">
+    <text x="315" y="75">position 2</text>
+    <text x="495" y="75">position 5</text>
+    <text x="630" y="161">position 12</text>
+    <text x="800" y="161">position 15</text>
+  </g>
+  <text x="382" y="132" font-family="sans-serif" font-size="17" fill="#c2410c">distance = 3</text>
+  <text x="700" y="218" font-family="sans-serif" font-size="17" fill="#c2410c">distance = 3</text>
+</svg>
