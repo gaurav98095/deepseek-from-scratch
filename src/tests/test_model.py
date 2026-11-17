@@ -18,7 +18,12 @@ def test_parameter_count() -> None:
     config = DeepSeekConfig()
     model = DeepSeekSkeleton(config)
     actual = sum(parameter.numel() for parameter in model.parameters())
-    expected = 2 * config.vocab_size * config.dim + config.dim
+    attention_per_block = 4 * config.dim * config.dim + config.dim
+    expected = (
+        2 * config.vocab_size * config.dim
+        + attention_per_block * config.n_layers
+        + config.dim
+    )
 
     assert actual == expected
 
