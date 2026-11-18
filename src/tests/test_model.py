@@ -18,10 +18,14 @@ def test_parameter_count() -> None:
     config = DeepSeekConfig()
     model = DeepSeekSkeleton(config)
     actual = sum(parameter.numel() for parameter in model.parameters())
-    attention_per_block = 4 * config.dim * config.dim + config.dim
+    block_parameters = (
+        4 * config.dim * config.dim
+        + 3 * config.dim * config.inter_dim
+        + 2 * config.dim
+    )
     expected = (
         2 * config.vocab_size * config.dim
-        + attention_per_block * config.n_layers
+        + block_parameters * config.n_layers
         + config.dim
     )
 
