@@ -12,6 +12,8 @@ Start with [Article 1 — Understanding DeepSeek](docs/01-understanding-deepseek
 - `commands/` — commands for notebooks, smoke tests, and each article's checks.
 - `src/smoke_test.py` — small forward-pass check.
 - `src/train_tokenizer.py` — tokenizer training demonstration.
+- `src/train.py` — dense-baseline training entry point.
+- `src/generate.py` — checkpoint loading and autoregressive generation.
 - `docs/` — written explanations and architecture diagrams.
 - `notebooks/` — executable experiments and tensor-shape demonstrations.
 - `requirements.txt` — Python dependencies.

@@ -331,6 +331,19 @@ The goal is to verify that the complete model can train, not to produce high-qua
 
 BF16 autocast can reduce activation memory on supported GPUs while keeping model parameters and optimizer state in their usual precision. RMSNorm computes its statistics in FP32 in this repository, which is useful for numerical stability.
 
+The repository training entry point is `src/train.py`. After preparing `data/processed`, run a short training job from the repository root:
+
+```bash
+python -m src.train \
+  --data-dir data/processed \
+  --steps 300 \
+  --batch-size 8 \
+  --seq-len 128 \
+  --checkpoint checkpoints/gpt_baseline.pt
+```
+
+The script reads the tokenizer vocabulary size from `data/processed/metadata.json`, trains with AdamW, prints periodic loss values, and saves the model and optimizer state together with the serialized `DeepSeekConfig`.
+
 For a uniform vocabulary of size `V`, the reference cross-entropy is:
 
 ```text
@@ -370,6 +383,18 @@ def generate(model, input_ids, max_new_tokens, temperature=1.0):
 ```
 
 This simple version recomputes the whole visible context on every step. It is easy to understand, but inefficient for long generation. A KV cache will avoid repeating earlier attention computation when we study inference in detail.
+
+The reusable implementation is in `src/generate.py`. Generate from a saved checkpoint with:
+
+```bash
+python -m src.generate \
+  --checkpoint checkpoints/gpt_baseline.pt \
+  --prompt "The history of" \
+  --max-new-tokens 50 \
+  --temperature 0.8
+```
+
+The baseline generator truncates the visible context to `max_seq_len` and does not use a KV cache yet.
 
 Because this baseline has limited parameters and training, generated text may contain fragments, repetitions, or invalid-looking sequences. That is expected. The important result is that the model can complete the full forward, loss, backward, and generation path.
 
