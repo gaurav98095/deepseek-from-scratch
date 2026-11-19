@@ -181,6 +181,16 @@ python -m pytest src/tests/test_kv_cache.py -v
 
 The utility compares logical cache storage for MHA, GQA, MQA, and a toy MLA configuration. The companion notebook is `notebooks/10-why-mla-exists.ipynb`.
 
+## Article 11 — Low-Rank Query and KV Compression
+
+The experimental MLA projection branches are in `src/model/mla.py`. Run the focused checks with:
+
+```bash
+python -m pytest src/tests/test_mla.py -v
+```
+
+These checks cover query shapes, KV latent and reconstruction shapes, content-only causal attention, and gradient flow. The companion notebook is `notebooks/11-low-rank-q-kv-compression.ipynb`.
+
 ## Run all current tests
 
 ```bash
