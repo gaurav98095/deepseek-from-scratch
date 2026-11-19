@@ -147,6 +147,30 @@ The checks cover shape preservation, length preservation, relative-position beha
 
 The notebook adds the repository root to `sys.path` automatically, so its imports work when Jupyter is opened from either the repository root or the `notebooks/` directory.
 
+## Article 9 — Complete GPT-Style Transformer
+
+The dense baseline adds `SwiGLUFFN` in `src/model/ffn.py` and combines it with attention and RMSNorm in `src/model/transformer.py`. Run the focused checks with:
+
+```bash
+python -m pytest src/tests/test_transformer.py -v
+```
+
+These checks cover the FFN shape, complete block shape, model logits, and gradient flow. The companion notebook is `notebooks/09-first-complete-gpt.ipynb`.
+
+Train the dense baseline after preparing `data/processed`:
+
+```bash
+python -m src.train --steps 300 --batch-size 8 --seq-len 128
+```
+
+Generate from its checkpoint:
+
+```bash
+python -m src.generate --checkpoint checkpoints/gpt_baseline.pt --prompt "The history of"
+```
+
+The training and generation scripts are educational baseline implementations. They do not use a KV cache yet.
+
 ## Run all current tests
 
 ```bash
@@ -174,4 +198,4 @@ Use the `python -m src...` form from the repository root. It keeps `src` on the 
 
 ## Current scope
 
-The repository currently contains the attention and RoPE model baseline, tokenizer, dataset preparation, and data-loading foundations. MLA, MoE, training, and inference commands will be added when those parts exist in `src/`.
+The repository currently contains the complete dense attention-and-RoPE baseline, tokenizer, dataset preparation, data-loading foundations, baseline training, and autoregressive generation. MLA, MoE, KV-cache inference, and other scaling commands will be added when those parts exist in `src/`.

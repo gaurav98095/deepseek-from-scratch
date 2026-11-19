@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 360" role="img" aria-labelledby="title desc">
+  <title id="title">Dense GPT-style Transformer architecture</title>
+  <desc id="desc">Token embeddings flow through repeated attention and SwiGLU residual blocks to a final normalization and language-model head.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 Z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <rect width="980" height="360" rx="20" fill="#f8fafc"/>
+  <g font-family="sans-serif" text-anchor="middle">
+    <text x="490" y="40" font-size="24" font-weight="700" fill="#0f172a">Dense decoder-only Transformer</text>
+    <g stroke="#64748b" stroke-width="3" marker-end="url(#arrow)">
+      <line x1="160" y1="180" x2="205" y2="180"/>
+      <line x1="335" y1="180" x2="380" y2="180"/>
+      <line x1="645" y1="180" x2="690" y2="180"/>
+      <line x1="820" y1="180" x2="865" y2="180"/>
+    </g>
+    <g>
+      <rect x="35" y="135" width="125" height="90" rx="12" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+      <text x="97" y="173" font-size="17" font-weight="600" fill="#1e3a8a">Token</text>
+      <text x="97" y="198" font-size="17" fill="#1e3a8a">embeddings</text>
+    </g>
+    <g>
+      <rect x="205" y="85" width="440" height="190" rx="16" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/>
+      <text x="425" y="116" font-size="18" font-weight="700" fill="#9a3412">Repeated Transformer blocks</text>
+      <rect x="235" y="140" width="175" height="82" rx="10" fill="#e0f2fe" stroke="#0284c7" stroke-width="2"/>
+      <text x="322" y="173" font-size="16" font-weight="600" fill="#075985">RMSNorm +</text>
+      <text x="322" y="197" font-size="16" fill="#075985">RoPE attention</text>
+      <rect x="440" y="140" width="175" height="82" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+      <text x="527" y="173" font-size="16" font-weight="600" fill="#166534">RMSNorm +</text>
+      <text x="527" y="197" font-size="16" fill="#166534">SwiGLU FFN</text>
+      <text x="425" y="253" font-size="15" fill="#7c2d12">residual connection around each sublayer</text>
+    </g>
+    <g>
+      <rect x="690" y="135" width="130" height="90" rx="12" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+      <text x="755" y="173" font-size="17" font-weight="600" fill="#5b21b6">Final</text>
+      <text x="755" y="198" font-size="17" fill="#5b21b6">RMSNorm</text>
+    </g>
+    <g>
+      <rect x="865" y="135" width="95" height="90" rx="12" fill="#fce7f3" stroke="#db2777" stroke-width="2"/>
+      <text x="912" y="173" font-size="16" font-weight="600" fill="#9d174d">LM</text>
+      <text x="912" y="198" font-size="16" fill="#9d174d">head</text>
+    </g>
+    <text x="490" y="320" font-size="17" fill="#475569">next-token logits: [batch, sequence, vocabulary]</text>
+  </g>
+</svg>

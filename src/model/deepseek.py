@@ -6,7 +6,7 @@ from torch import nn
 from .config import DeepSeekConfig
 from .embeddings import TokenEmbedding
 from .rmsnorm import RMSNorm
-from .transformer import AttentionBlock
+from .transformer import TransformerBlock
 
 
 class DeepSeekSkeleton(nn.Module):
@@ -18,12 +18,7 @@ class DeepSeekSkeleton(nn.Module):
         self.embed_tokens = TokenEmbedding(config)
         self.blocks = nn.ModuleList(
             [
-                AttentionBlock(
-                    dim=config.dim,
-                    n_heads=config.n_heads,
-                    max_seq_len=config.max_seq_len,
-                    rope_theta=config.rope_theta,
-                )
+                TransformerBlock(config)
                 for _ in range(config.n_layers)
             ]
         )

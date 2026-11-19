@@ -4,9 +4,10 @@ from .config import DeepSeekConfig
 from .deepseek import DeepSeekSkeleton
 from .embeddings import TokenEmbedding
 from .attention import CausalSelfAttention
+from .ffn import SwiGLUFFN
 from .rmsnorm import RMSNorm
 from .rope import RotaryEmbedding
-from .transformer import AttentionBlock
+from .transformer import AttentionBlock, TransformerBlock
 
 __all__ = [
     "AttentionBlock",
@@ -15,5 +16,7 @@ __all__ = [
     "DeepSeekSkeleton",
     "RMSNorm",
     "RotaryEmbedding",
+    "SwiGLUFFN",
+    "TransformerBlock",
     "TokenEmbedding",
 ]
