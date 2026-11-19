@@ -5,6 +5,7 @@ from torch import nn
 
 from .attention import CausalSelfAttention
 from .ffn import SwiGLUFFN
+from .mla import MLA
 from .rmsnorm import RMSNorm
 
 
@@ -52,3 +53,21 @@ class AttentionBlock(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return x + self.attention(self.attn_norm(x))
+
+
+class DeepSeekBlock(nn.Module):
+    """Dense Transformer block using naive MLA attention."""
+
+    def __init__(self, config) -> None:
+        super().__init__()
+        self.attn_norm = RMSNorm(config.dim, eps=1e-6)
+        self.attention = MLA(config)
+        self.ffn_norm = RMSNorm(config.dim, eps=1e-6)
+        self.ffn = SwiGLUFFN(
+            dim=config.dim,
+            hidden_dim=config.inter_dim,
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = x + self.attention(self.attn_norm(x))
+        return x + self.ffn(self.ffn_norm(x))

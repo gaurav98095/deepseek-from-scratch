@@ -201,6 +201,26 @@ python -m pytest src/tests/test_mla.py -v
 
 The tests cover the complete output shape, gradients, causal masking, and equivalence of concatenated versus separate content/position score calculations. The companion notebook is `notebooks/12-decoupled-rope.ipynb`.
 
+## Article 13 — Complete MLA Integration
+
+The integrated dense MLA model is `DeepSeekMLA` in `src/model/deepseek_mla.py`, with `DeepSeekBlock` in `src/model/transformer.py`. Run the full-network checks with:
+
+```bash
+python -m pytest src/tests/test_deepseek_mla.py -v
+```
+
+Run the short GPT-versus-MLA comparison after preparing `data/processed`:
+
+```bash
+python -m src.experiments.compare_gpt_mla --steps 50 --batch-size 4 --seq-len 128
+```
+
+Run the lightweight MLA forward-pass smoke test without prepared data:
+
+```bash
+python -m src.smoke_test_mla
+```
+
 ## Run all current tests
 
 ```bash
