@@ -8,6 +8,7 @@ from torch import nn
 
 from .config import DeepSeekConfig
 from .rmsnorm import RMSNorm
+from .rope import RotaryEmbedding
 
 
 class QueryCompression(nn.Module):
@@ -135,5 +136,70 @@ class ContentOnlyMLA(nn.Module):
         )
         weights = F.softmax(scores.float(), dim=-1).to(values.dtype)
         attended = torch.einsum("bhij,bjhd->bihd", weights, values)
+        attended = attended.reshape(batch, time, self.n_heads * self.d_value)
+        return self.out_proj(attended)
+
+
+class MLA(nn.Module):
+    """Naive DeepSeek-style MLA without optimized KV caching."""
+
+    def __init__(self, config: DeepSeekConfig) -> None:
+        super().__init__()
+        self.n_heads = config.n_heads
+        self.d_content = config.qk_nope_head_dim
+        self.d_rope = config.qk_rope_head_dim
+        self.d_value = config.v_head_dim
+        self.qk_dim = self.d_content + self.d_rope
+        self.scale = self.qk_dim**-0.5
+
+        self.q_branch = QueryCompression(config)
+        self.kv_branch = KVCompression(config)
+        self.rope = RotaryEmbedding(
+            dim=self.d_rope,
+            max_seq_len=config.max_seq_len,
+            theta=config.rope_theta,
+        )
+        self.out_proj = nn.Linear(
+            self.n_heads * self.d_value,
+            config.dim,
+            bias=False,
+        )
+        future = torch.triu(
+            torch.ones(config.max_seq_len, config.max_seq_len, dtype=torch.bool),
+            diagonal=1,
+        )
+        self.register_buffer("future_mask", future, persistent=False)
+
+    def forward(self, x: torch.Tensor, start_pos: int = 0) -> torch.Tensor:
+        if x.ndim != 3:
+            raise ValueError("Expected x with shape [batch, sequence, dim]")
+        batch, time, _ = x.shape
+        if time > self.future_mask.size(0):
+            raise ValueError("sequence is longer than max_seq_len")
+
+        q_content, q_position = self.q_branch(x)
+        _, k_position, k_content, values = self.kv_branch(x)
+
+        q_content = q_content.transpose(1, 2)
+        q_position = q_position.transpose(1, 2)
+        k_content = k_content.transpose(1, 2)
+        values = values.transpose(1, 2)
+
+        k_position = k_position.transpose(1, 2).unsqueeze(1)
+        k_position = k_position.expand(-1, self.n_heads, -1, -1)
+
+        q_position = self.rope(q_position, start_pos=start_pos)
+        k_position = self.rope(k_position, start_pos=start_pos)
+
+        q = torch.cat([q_content, q_position], dim=-1)
+        k = torch.cat([k_content, k_position], dim=-1)
+        scores = (q @ k.transpose(-2, -1)) * self.scale
+        scores = scores.masked_fill(
+            self.future_mask[:time, :time],
+            float("-inf"),
+        )
+        weights = F.softmax(scores.float(), dim=-1).to(values.dtype)
+        attended = weights @ values
+        attended = attended.transpose(1, 2).contiguous()
         attended = attended.reshape(batch, time, self.n_heads * self.d_value)
         return self.out_proj(attended)

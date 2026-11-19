@@ -191,6 +191,16 @@ python -m pytest src/tests/test_mla.py -v
 
 These checks cover query shapes, KV latent and reconstruction shapes, content-only causal attention, and gradient flow. The companion notebook is `notebooks/11-low-rank-q-kv-compression.ipynb`.
 
+## Article 12 — Decoupled RoPE in MLA
+
+The complete naive MLA layer is `MLA` in `src/model/mla.py`. Run the MLA checks with:
+
+```bash
+python -m pytest src/tests/test_mla.py -v
+```
+
+The tests cover the complete output shape, gradients, causal masking, and equivalence of concatenated versus separate content/position score calculations. The companion notebook is `notebooks/12-decoupled-rope.ipynb`.
+
 ## Run all current tests
 
 ```bash
