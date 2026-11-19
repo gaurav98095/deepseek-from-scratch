@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 390" role="img" aria-labelledby="title desc">
+  <title id="title">Attention cache comparison</title>
+  <desc id="desc">MHA stores full key and value heads, GQA shares K/V heads by group, and MLA stores a shared compressed latent plus a positional key.</desc>
+  <rect width="980" height="390" rx="20" fill="#f8fafc"/>
+  <g font-family="sans-serif" text-anchor="middle">
+    <text x="490" y="38" font-size="23" font-weight="700" fill="#0f172a">What gets cached?</text>
+    <g stroke="#cbd5e1" stroke-width="2" fill="#fff">
+      <rect x="35" y="68" width="280" height="270" rx="14"/>
+      <rect x="350" y="68" width="280" height="270" rx="14"/>
+      <rect x="665" y="68" width="280" height="270" rx="14"/>
+    </g>
+    <text x="175" y="105" font-size="20" font-weight="700" fill="#1d4ed8">MHA</text>
+    <text x="490" y="105" font-size="20" font-weight="700" fill="#166534">GQA</text>
+    <text x="805" y="105" font-size="20" font-weight="700" fill="#7c3aed">MLA</text>
+    <g font-size="16" fill="#334155">
+      <text x="175" y="140">K1 V1</text>
+      <text x="175" y="175">K2 V2</text>
+      <text x="175" y="210">K3 V3</text>
+      <text x="175" y="245">K4 V4</text>
+      <text x="175" y="292">one K/V pair per head</text>
+      <text x="490" y="140">K/V group 1</text>
+      <text x="490" y="175">shared by Q1-Q4</text>
+      <text x="490" y="225">K/V group 2</text>
+      <text x="490" y="260">shared by Q5-Q8</text>
+      <text x="490" y="307">one pair per group</text>
+      <text x="805" y="150">compressed c_KV</text>
+      <text x="805" y="190">+ positional key</text>
+      <text x="805" y="240">shared across heads</text>
+      <text x="805" y="292">content and position separated</text>
+    </g>
+    <g fill="#93c5fd">
+      <rect x="115" y="120" width="120" height="24" rx="6"/>
+      <rect x="115" y="155" width="120" height="24" rx="6"/>
+      <rect x="115" y="190" width="120" height="24" rx="6"/>
+      <rect x="115" y="225" width="120" height="24" rx="6"/>
+    </g>
+    <g fill="#86efac">
+      <rect x="410" y="120" width="160" height="34" rx="6"/>
+      <rect x="410" y="205" width="160" height="34" rx="6"/>
+    </g>
+    <g fill="#c4b5fd">
+      <rect x="725" y="120" width="160" height="34" rx="6"/>
+      <rect x="725" y="180" width="160" height="34" rx="6"/>
+    </g>
+  </g>
+</svg>

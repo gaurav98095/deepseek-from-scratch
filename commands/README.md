@@ -171,6 +171,16 @@ python -m src.generate --checkpoint checkpoints/gpt_baseline.pt --prompt "The hi
 
 The training and generation scripts are educational baseline implementations. They do not use a KV cache yet.
 
+## Article 10 — Why MLA Exists
+
+The KV-cache sizing utility is in `src/inference/kv_cache_memory.py`. Run its checks with:
+
+```bash
+python -m pytest src/tests/test_kv_cache.py -v
+```
+
+The utility compares logical cache storage for MHA, GQA, MQA, and a toy MLA configuration. The companion notebook is `notebooks/10-why-mla-exists.ipynb`.
+
 ## Run all current tests
 
 ```bash
@@ -198,4 +208,4 @@ Use the `python -m src...` form from the repository root. It keeps `src` on the 
 
 ## Current scope
 
-The repository currently contains the complete dense attention-and-RoPE baseline, tokenizer, dataset preparation, data-loading foundations, baseline training, and autoregressive generation. MLA, MoE, KV-cache inference, and other scaling commands will be added when those parts exist in `src/`.
+The repository currently contains the complete dense attention-and-RoPE baseline, tokenizer, dataset preparation, data-loading foundations, baseline training, autoregressive generation, and KV-cache estimates. Full MLA, MoE, KV-cache inference, and other scaling commands will be added when those parts exist in `src/`.
