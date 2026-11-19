@@ -221,6 +221,25 @@ Run the lightweight MLA forward-pass smoke test without prepared data:
 python -m src.smoke_test_mla
 ```
 
+## Article 14 — Compressed KV Cache and Matrix Absorption
+
+Open the executable notebook:
+
+```bash
+jupyter lab notebooks/14-absorbed-mla-kv-cache.ipynb
+```
+
+Run the focused standalone-MLA and full-model cache tests:
+
+```bash
+python -m pytest src/tests/test_mla_cache.py -v
+```
+
+The stateful cache implementation is in `src/model/mla_cache.py`. Both
+`CachedMLA` and `DeepSeekMLA` expose `reset_cache()`, `prefill()`, and
+`decode_step()` for explicit inference-state management. The article is
+`docs/14-absorbed-mla-kv-cache.md`.
+
 ## Run all current tests
 
 ```bash
@@ -248,4 +267,4 @@ Use the `python -m src...` form from the repository root. It keeps `src` on the 
 
 ## Current scope
 
-The repository currently contains the complete dense attention-and-RoPE baseline, tokenizer, dataset preparation, data-loading foundations, baseline training, autoregressive generation, and KV-cache estimates. Full MLA, MoE, KV-cache inference, and other scaling commands will be added when those parts exist in `src/`.
+The repository currently contains the complete dense attention-and-RoPE baseline, tokenizer, dataset preparation, data-loading foundations, baseline training, autoregressive generation, MLA integration, and compressed KV-cache inference. MoE, distributed training, and other scaling commands will be added as those components are implemented.

@@ -7,6 +7,7 @@ from .embeddings import TokenEmbedding
 from .attention import CausalSelfAttention
 from .ffn import SwiGLUFFN
 from .mla import ContentOnlyMLA, KVCompression, MLA, QueryCompression
+from .mla_cache import CachedMLA
 from .rmsnorm import RMSNorm
 from .rope import RotaryEmbedding
 from .transformer import AttentionBlock, DeepSeekBlock, TransformerBlock
@@ -14,6 +15,7 @@ from .transformer import AttentionBlock, DeepSeekBlock, TransformerBlock
 __all__ = [
     "AttentionBlock",
     "CausalSelfAttention",
+    "CachedMLA",
     "DeepSeekConfig",
     "DeepSeekSkeleton",
     "DeepSeekMLA",

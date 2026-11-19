@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="420" viewBox="0 0 1080 420" role="img" aria-labelledby="title desc">
+  <title id="title">Naive and absorbed MLA cache representations</title>
+  <desc id="desc">Naive MLA reconstructs full keys and values, while absorbed MLA transforms the query and caches only a latent and positional key.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#475569"/>
+    </marker>
+    <style>
+      .title { font: 700 22px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #0f172a; }
+      .heading { font: 700 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #0f172a; }
+      .label { font: 600 15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #334155; }
+      .small { font: 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #475569; }
+    </style>
+  </defs>
+  <rect width="1080" height="420" rx="18" fill="#f8fafc"/>
+  <text x="540" y="38" text-anchor="middle" class="title">Same attention result, different order of computation</text>
+  <rect x="30" y="70" width="490" height="315" rx="16" fill="#fff1f2" stroke="#fda4af" stroke-width="2"/>
+  <rect x="560" y="70" width="490" height="315" rx="16" fill="#ecfeff" stroke="#67e8f9" stroke-width="2"/>
+  <text x="275" y="108" text-anchor="middle" class="heading">Naive MLA</text>
+  <text x="805" y="108" text-anchor="middle" class="heading">Absorbed MLA</text>
+  <rect x="65" y="140" width="175" height="62" rx="10" fill="#ffe4e6"/>
+  <text x="152" y="167" text-anchor="middle" class="label">KV latent</text>
+  <text x="152" y="188" text-anchor="middle" class="small">[B, T, rKV]</text>
+  <rect x="285" y="140" width="190" height="62" rx="10" fill="#fecdd3"/>
+  <text x="380" y="167" text-anchor="middle" class="label">Reconstruct K and V</text>
+  <text x="380" y="188" text-anchor="middle" class="small">for every head and token</text>
+  <line x1="240" y1="171" x2="281" y2="171" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="100" y="245" width="350" height="72" rx="10" fill="#fecdd3"/>
+  <text x="275" y="275" text-anchor="middle" class="label">Cache full K/V</text>
+  <text x="275" y="297" text-anchor="middle" class="small">H × (dK + dV) elements/token</text>
+  <line x1="380" y1="202" x2="380" y2="240" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="275" y="355" text-anchor="middle" class="small">Large per-head storage</text>
+  <rect x="595" y="140" width="175" height="62" rx="10" fill="#cffafe"/>
+  <text x="682" y="167" text-anchor="middle" class="label">Cache latent + RoPE K</text>
+  <text x="682" y="188" text-anchor="middle" class="small">[B, T, rKV] + [B, T, dR]</text>
+  <rect x="815" y="140" width="190" height="62" rx="10" fill="#a5f3fc"/>
+  <text x="910" y="167" text-anchor="middle" class="label">Transform current Q</text>
+  <text x="910" y="188" text-anchor="middle" class="small">WᵀK Q → latent space</text>
+  <line x1="770" y1="171" x2="811" y2="171" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="630" y="245" width="350" height="72" rx="10" fill="#a5f3fc"/>
+  <text x="805" y="275" text-anchor="middle" class="label">Aggregate latents, then project V</text>
+  <text x="805" y="297" text-anchor="middle" class="small">rKV + dR elements/token</text>
+  <line x1="910" y1="202" x2="910" y2="240" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="805" y="355" text-anchor="middle" class="small">6.4× versus full content K/V in this setup</text>
+</svg>
