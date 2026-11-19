@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 360" role="img" aria-labelledby="title desc">
+  <title id="title">KV cache layout during autoregressive decoding</title>
+  <desc id="desc">Past keys and values are appended to a cache, and the current query attends to the cached keys.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 Z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <rect width="980" height="360" rx="20" fill="#f8fafc"/>
+  <g font-family="sans-serif" text-anchor="middle">
+    <text x="490" y="38" font-size="23" font-weight="700" fill="#0f172a">One decoding step</text>
+    <rect x="42" y="72" width="160" height="90" rx="12" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+    <text x="122" y="108" font-size="17" font-weight="600" fill="#1e3a8a">Current token</text>
+    <text x="122" y="134" font-size="15" fill="#1e3a8a">hidden state x_t</text>
+    <g stroke="#64748b" stroke-width="3" marker-end="url(#arrow)">
+      <line x1="202" y1="117" x2="258" y2="117"/>
+      <line x1="202" y1="205" x2="258" y2="205"/>
+      <line x1="202" y1="293" x2="258" y2="293"/>
+      <line x1="630" y1="117" x2="700" y2="117"/>
+      <line x1="630" y1="205" x2="700" y2="205"/>
+    </g>
+    <rect x="258" y="72" width="165" height="90" rx="12" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+    <text x="340" y="108" font-size="17" font-weight="600" fill="#92400e">Query q_t</text>
+    <text x="340" y="134" font-size="15" fill="#92400e">current only</text>
+    <rect x="258" y="160" width="372" height="90" rx="12" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+    <text x="444" y="195" font-size="17" font-weight="600" fill="#166534">Key cache</text>
+    <text x="444" y="221" font-size="15" fill="#166534">K_1, K_2, ..., K_t</text>
+    <rect x="258" y="248" width="372" height="76" rx="12" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+    <text x="444" y="280" font-size="17" font-weight="600" fill="#5b21b6">Value cache</text>
+    <text x="444" y="305" font-size="15" fill="#5b21b6">V_1, V_2, ..., V_t</text>
+    <rect x="700" y="72" width="230" height="90" rx="12" fill="#e0f2fe" stroke="#0284c7" stroke-width="2"/>
+    <text x="815" y="108" font-size="17" font-weight="600" fill="#075985">q_t K_cache^T</text>
+    <text x="815" y="134" font-size="15" fill="#075985">attention scores</text>
+    <rect x="700" y="160" width="230" height="90" rx="12" fill="#fce7f3" stroke="#db2777" stroke-width="2"/>
+    <text x="815" y="196" font-size="17" font-weight="600" fill="#9d174d">weights V_cache</text>
+    <text x="815" y="222" font-size="15" fill="#9d174d">current output</text>
+    <text x="490" y="347" font-size="16" fill="#475569">append only the new K_t and V_t; reuse all earlier entries</text>
+  </g>
+</svg>
