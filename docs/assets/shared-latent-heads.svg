@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 330" role="img" aria-labelledby="title desc">
+  <title id="title">Shared KV latent with head-specific reconstruction</title>
+  <desc id="desc">One shared compressed latent is projected through different learned slices to produce different keys for each attention head.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 Z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <rect width="900" height="330" rx="20" fill="#f8fafc"/>
+  <g font-family="sans-serif" text-anchor="middle">
+    <text x="450" y="38" font-size="23" font-weight="700" fill="#0f172a">One latent, different head-specific projections</text>
+    <rect x="35" y="120" width="170" height="90" rx="12" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+    <text x="120" y="156" font-size="18" font-weight="600" fill="#1e3a8a">Shared KV latent</text>
+    <text x="120" y="184" font-size="16" fill="#1e3a8a">c_KV [64]</text>
+    <g stroke="#64748b" stroke-width="3" marker-end="url(#arrow)">
+      <line x1="205" y1="165" x2="275" y2="90"/>
+      <line x1="205" y1="165" x2="275" y2="165"/>
+      <line x1="205" y1="165" x2="275" y2="240"/>
+      <line x1="445" y1="90" x2="540" y2="90"/>
+      <line x1="445" y1="165" x2="540" y2="165"/>
+      <line x1="445" y1="240" x2="540" y2="240"/>
+    </g>
+    <g>
+      <rect x="275" y="55" width="170" height="70" rx="10" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/>
+      <text x="360" y="84" font-size="16" font-weight="600" fill="#9a3412">W_UK, head 1</text>
+      <text x="360" y="106" font-size="14" fill="#9a3412">learned slice</text>
+      <rect x="275" y="130" width="170" height="70" rx="10" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/>
+      <text x="360" y="159" font-size="16" font-weight="600" fill="#9a3412">W_UK, head 2</text>
+      <text x="360" y="181" font-size="14" fill="#9a3412">learned slice</text>
+      <rect x="275" y="205" width="170" height="70" rx="10" fill="#ffedd5" stroke="#ea580c" stroke-width="2"/>
+      <text x="360" y="234" font-size="16" font-weight="600" fill="#9a3412">W_UK, head 3</text>
+      <text x="360" y="256" font-size="14" fill="#9a3412">learned slice</text>
+      <rect x="540" y="55" width="170" height="70" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+      <text x="625" y="84" font-size="16" font-weight="600" fill="#166534">K head 1</text>
+      <text x="625" y="106" font-size="14" fill="#166534">different vector</text>
+      <rect x="540" y="130" width="170" height="70" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+      <text x="625" y="159" font-size="16" font-weight="600" fill="#166534">K head 2</text>
+      <text x="625" y="181" font-size="14" fill="#166534">different vector</text>
+      <rect x="540" y="205" width="170" height="70" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+      <text x="625" y="234" font-size="16" font-weight="600" fill="#166534">K head 3</text>
+      <text x="625" y="256" font-size="14" fill="#166534">different vector</text>
+    </g>
+    <text x="790" y="158" font-size="17" font-weight="600" fill="#475569">shared storage</text>
+    <text x="790" y="188" font-size="17" fill="#475569">head-specific behavior</text>
+  </g>
+</svg>

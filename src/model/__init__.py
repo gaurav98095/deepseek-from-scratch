@@ -5,6 +5,7 @@ from .deepseek import DeepSeekSkeleton
 from .embeddings import TokenEmbedding
 from .attention import CausalSelfAttention
 from .ffn import SwiGLUFFN
+from .mla import ContentOnlyMLA, KVCompression, QueryCompression
 from .rmsnorm import RMSNorm
 from .rope import RotaryEmbedding
 from .transformer import AttentionBlock, TransformerBlock
@@ -17,6 +18,9 @@ __all__ = [
     "RMSNorm",
     "RotaryEmbedding",
     "SwiGLUFFN",
+    "ContentOnlyMLA",
+    "KVCompression",
+    "QueryCompression",
     "TransformerBlock",
     "TokenEmbedding",
 ]
