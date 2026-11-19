@@ -5,7 +5,7 @@ from torch import nn
 
 from .attention import CausalSelfAttention
 from .ffn import SwiGLUFFN
-from .mla import MLA
+from .mla_cache import CachedMLA
 from .rmsnorm import RMSNorm
 
 
@@ -56,12 +56,12 @@ class AttentionBlock(nn.Module):
 
 
 class DeepSeekBlock(nn.Module):
-    """Dense Transformer block using naive MLA attention."""
+    """Dense Transformer block with trainable and cached MLA paths."""
 
     def __init__(self, config) -> None:
         super().__init__()
         self.attn_norm = RMSNorm(config.dim, eps=1e-6)
-        self.attention = MLA(config)
+        self.attention = CachedMLA(config)
         self.ffn_norm = RMSNorm(config.dim, eps=1e-6)
         self.ffn = SwiGLUFFN(
             dim=config.dim,
@@ -71,3 +71,16 @@ class DeepSeekBlock(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = x + self.attention(self.attn_norm(x))
         return x + self.ffn(self.ffn_norm(x))
+
+    def reset_cache(self) -> None:
+        self.attention.reset_cache()
+
+    def prefill(self, x: torch.Tensor) -> torch.Tensor:
+        """Run the block over a prompt and populate its attention cache."""
+        hidden_states = x + self.attention.prefill(self.attn_norm(x))
+        return hidden_states + self.ffn(self.ffn_norm(hidden_states))
+
+    def decode_step(self, x: torch.Tensor) -> torch.Tensor:
+        """Run one hidden-state token through the cached block."""
+        hidden_states = x + self.attention.decode_step(self.attn_norm(x))
+        return hidden_states + self.ffn(self.ffn_norm(hidden_states))
