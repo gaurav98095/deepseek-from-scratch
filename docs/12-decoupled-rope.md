@@ -175,7 +175,7 @@ class MLA(nn.Module):
         values = values.transpose(1, 2)
 
         # The positional key is shared across heads.
-        k_position = k_position.transpose(1, 2).unsqueeze(1)
+        k_position = k_position.unsqueeze(1)
         k_position = k_position.expand(-1, self.n_heads, -1, -1)
 
         q_position = self.rope(q_position, start_pos=start_pos)

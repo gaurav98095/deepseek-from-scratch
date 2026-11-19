@@ -185,7 +185,7 @@ class MLA(nn.Module):
         k_content = k_content.transpose(1, 2)
         values = values.transpose(1, 2)
 
-        k_position = k_position.transpose(1, 2).unsqueeze(1)
+        k_position = k_position.unsqueeze(1)
         k_position = k_position.expand(-1, self.n_heads, -1, -1)
 
         q_position = self.rope(q_position, start_pos=start_pos)
