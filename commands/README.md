@@ -313,6 +313,30 @@ python -m src.experiments.moe_balancing
 The router now keeps non-trainable `expert_bias` state. Biases affect expert
 selection only; selected output weights still use the original sigmoid scores.
 
+## Article 19 — Building the Complete DeepSeekMoE Transformer
+
+Open the executable notebook:
+
+```bash
+jupyter lab notebooks/19-deepseek-moe.ipynb
+```
+
+Run the complete-model tests:
+
+```bash
+python -m pytest src/tests/test_deepseek_moe.py -v
+```
+
+Run a short training experiment after preparing `data/processed`:
+
+```bash
+python -m src.train_moe --steps 100 --batch-size 4 --seq-len 128
+```
+
+The model is in `src/model/deepseek_moe.py`. It uses dense SwiGLU in the
+initial layers and MoE in later layers. `src/training/moe_balancer.py` records
+actual router assignments and updates balancing biases after optimizer steps.
+
 ## Run all current tests
 
 ```bash

@@ -2,6 +2,7 @@
 
 from .config import DeepSeekConfig
 from .deepseek import DeepSeekSkeleton
+from .deepseek_moe import DeepSeekMoEBlock, TinyDeepSeek
 from .deepseek_mla import DeepSeekMLA
 from .embeddings import TokenEmbedding
 from .attention import CausalSelfAttention
@@ -22,6 +23,7 @@ __all__ = [
     "DeepSeekConfig",
     "DeepSeekSkeleton",
     "DeepSeekMLA",
+    "DeepSeekMoEBlock",
     "DeepSeekMoE",
     "DeepSeekBlock",
     "Expert",
@@ -35,5 +37,6 @@ __all__ = [
     "QueryCompression",
     "TransformerBlock",
     "TokenEmbedding",
+    "TinyDeepSeek",
     "TopKRouter",
 ]
