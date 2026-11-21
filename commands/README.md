@@ -431,6 +431,30 @@ The one-stage `MTPModule` is in `src/model/mtp.py`. The
 ordinary next-token loss with the weighted two-ahead loss while sharing the
 main embedding table and vocabulary head.
 
+## Article 24 — Complete Architecture Validation
+
+Open the executable validation notebook:
+
+```bash
+jupyter lab notebooks/24-complete-deepseek-architecture.ipynb
+```
+
+Run the focused validation suite:
+
+```bash
+python -m pytest src/tests/test_final_validation.py -v -s
+```
+
+Run every repository test:
+
+```bash
+python -m pytest src/tests -v
+```
+
+The validation suite covers structure, shapes, causality, sparse MoE
+equivalence, gradient paths, balancing buffers, MTP alignment and leakage,
+cached decoding, checkpoint integrity, and BF16 stability when supported.
+
 ## Run all current tests
 
 ```bash

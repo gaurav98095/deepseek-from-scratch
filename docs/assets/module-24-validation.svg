@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="310" viewBox="0 0 980 310" role="img" aria-labelledby="title desc">
+  <title id="title">Complete architecture validation plan</title>
+  <desc id="desc">A validation flow from structure and shapes through causality, MoE routing, MTP, cache equivalence, checkpoints, and BF16 stability.</desc>
+  <rect width="980" height="310" rx="18" fill="#0f172a"/>
+  <text x="42" y="42" fill="#f8fafc" font-family="Arial, sans-serif" font-size="24" font-weight="700">Validate behavior before training</text>
+  <text x="42" y="68" fill="#94a3b8" font-family="Arial, sans-serif" font-size="15">A decreasing loss is not proof that every architectural path is correct</text>
+  <g font-family="Arial, sans-serif" text-anchor="middle">
+    <rect x="42" y="112" width="145" height="72" rx="10" fill="#172554" stroke="#60a5fa" stroke-width="2"/><text x="114" y="143" fill="#dbeafe" font-size="16" font-weight="700">Structure</text><text x="114" y="166" fill="#bfdbfe" font-size="13">shapes + counts</text>
+    <rect x="213" y="112" width="145" height="72" rx="10" fill="#164e63" stroke="#22d3ee" stroke-width="2"/><text x="285" y="143" fill="#cffafe" font-size="16" font-weight="700">Causality</text><text x="285" y="166" fill="#a5f3fc" font-size="13">future isolation</text>
+    <rect x="384" y="112" width="145" height="72" rx="10" fill="#422006" stroke="#fbbf24" stroke-width="2"/><text x="456" y="143" fill="#fef3c7" font-size="16" font-weight="700">MoE</text><text x="456" y="166" fill="#fde68a" font-size="13">dispatch + routing</text>
+    <rect x="555" y="112" width="145" height="72" rx="10" fill="#052e16" stroke="#4ade80" stroke-width="2"/><text x="627" y="143" fill="#dcfce7" font-size="16" font-weight="700">MTP</text><text x="627" y="166" fill="#bbf7d0" font-size="13">alignment + grads</text>
+    <rect x="726" y="112" width="212" height="72" rx="10" fill="#3f172e" stroke="#f472b6" stroke-width="2"/><text x="832" y="143" fill="#fce7f3" font-size="16" font-weight="700">Inference + state</text><text x="832" y="166" fill="#fbcfe8" font-size="13">cache + checkpoint + BF16</text>
+  </g>
+  <g stroke="#94a3b8" stroke-width="2" fill="none"><path d="M187 148 H213"/><path d="M358 148 H384"/><path d="M529 148 H555"/><path d="M700 148 H726"/></g>
+  <g fill="#94a3b8"><path d="M208 148 l-9 -5 v10z"/><path d="M379 148 l-9 -5 v10z"/><path d="M550 148 l-9 -5 v10z"/><path d="M721 148 l-9 -5 v10z"/></g>
+  <rect x="190" y="230" width="600" height="38" rx="19" fill="#1e293b" stroke="#94a3b8"/><text x="490" y="255" fill="#e2e8f0" font-family="Arial, sans-serif" font-size="15" text-anchor="middle">Only after these checks pass: begin pretraining</text>
+</svg>
