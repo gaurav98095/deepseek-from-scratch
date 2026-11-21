@@ -253,6 +253,25 @@ configuration, calculates total versus active parameters, and demonstrates
 illustrative top-k routing scores. Expert networks and production routing are
 implemented in later articles.
 
+## Article 16 — Implementing DeepSeek Expert Networks
+
+Open the executable notebook:
+
+```bash
+jupyter lab notebooks/16-implementing-expert-networks.ipynb
+```
+
+Run the expert-bank tests:
+
+```bash
+python -m pytest src/tests/test_experts.py -v
+```
+
+The implementation is in `src/model/experts.py`. It covers individual
+SwiGLU experts, independently registered routed experts, the shared expert,
+manual weighted combination, parameter counts, and sparse gradient flow.
+Top-k routing and token dispatch are intentionally not included yet.
+
 ## Run all current tests
 
 ```bash
@@ -280,4 +299,4 @@ Use the `python -m src...` form from the repository root. It keeps `src` on the 
 
 ## Current scope
 
-The repository currently contains the complete dense attention-and-RoPE baseline, tokenizer, dataset preparation, data-loading foundations, baseline training, autoregressive generation, MLA integration, and compressed KV-cache inference. MoE, distributed training, and other scaling commands will be added as those components are implemented.
+The repository currently contains the complete dense attention-and-RoPE baseline, tokenizer, dataset preparation, data-loading foundations, baseline training, autoregressive generation, MLA integration, compressed KV-cache inference, and independent MoE expert networks. Top-k routing, distributed training, and other scaling commands will be added as those components are implemented.
