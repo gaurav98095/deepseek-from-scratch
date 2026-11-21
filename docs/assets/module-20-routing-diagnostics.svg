@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="390" viewBox="0 0 960 390" role="img" aria-labelledby="title desc">
+  <title id="title">Routing diagnostics</title>
+  <desc id="desc">Balanced routing gives every expert the same load. Collapsed routing sends all assignments to two experts.</desc>
+  <rect width="960" height="390" rx="18" fill="#101827"/>
+  <text x="48" y="48" fill="#f8fafc" font-family="Arial, sans-serif" font-size="24" font-weight="700">Expert assignment diagnostics</text>
+  <text x="48" y="76" fill="#94a3b8" font-family="Arial, sans-serif" font-size="15">Illustrative counts for 256 routed assignments across eight experts</text>
+  <g font-family="Arial, sans-serif" font-size="14" fill="#cbd5e1">
+    <text x="50" y="122" font-weight="700">Balanced</text>
+    <text x="50" y="281" font-weight="700">Collapsed</text>
+  </g>
+  <g stroke="#334155" stroke-width="1">
+    <line x1="145" y1="230" x2="880" y2="230"/><line x1="145" y1="389" x2="880" y2="389"/>
+  </g>
+  <g fill="#38bdf8">
+    <rect x="160" y="166" width="54" height="64" rx="5"/><rect x="245" y="166" width="54" height="64" rx="5"/>
+    <rect x="330" y="166" width="54" height="64" rx="5"/><rect x="415" y="166" width="54" height="64" rx="5"/>
+    <rect x="500" y="166" width="54" height="64" rx="5"/><rect x="585" y="166" width="54" height="64" rx="5"/>
+    <rect x="670" y="166" width="54" height="64" rx="5"/><rect x="755" y="166" width="54" height="64" rx="5"/>
+  </g>
+  <g fill="#fb7185">
+    <rect x="160" y="256" width="54" height="133" rx="5"/><rect x="245" y="256" width="54" height="133" rx="5"/>
+  </g>
+  <g fill="#334155"><rect x="330" y="389" width="54" height="0"/><rect x="415" y="389" width="54" height="0"/><rect x="500" y="389" width="54" height="0"/><rect x="585" y="389" width="54" height="0"/><rect x="670" y="389" width="54" height="0"/><rect x="755" y="389" width="54" height="0"/></g>
+  <g fill="#cbd5e1" font-family="Arial, sans-serif" font-size="13" text-anchor="middle">
+    <text x="187" y="249">E0</text><text x="272" y="249">E1</text><text x="357" y="249">E2</text><text x="442" y="249">E3</text><text x="527" y="249">E4</text><text x="612" y="249">E5</text><text x="697" y="249">E6</text><text x="782" y="249">E7</text>
+    <text x="187" y="381">E0</text><text x="272" y="381">E1</text><text x="357" y="381">E2</text><text x="442" y="381">E3</text><text x="527" y="381">E4</text><text x="612" y="381">E5</text><text x="697" y="381">E6</text><text x="782" y="381">E7</text>
+  </g>
+  <g font-family="Arial, sans-serif" font-size="15">
+    <text x="850" y="175" fill="#7dd3fc">CV 0.00</text><text x="850" y="198" fill="#7dd3fc">max ratio 1.00×</text>
+    <text x="850" y="290" fill="#fda4af">CV 1.73</text><text x="850" y="313" fill="#fda4af">max ratio 4.00×</text>
+  </g>
+</svg>

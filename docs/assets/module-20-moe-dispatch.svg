@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="300" viewBox="0 0 960 300" role="img" aria-labelledby="title desc">
+  <title id="title">Sparse MoE token dispatch</title>
+  <desc id="desc">A router assigns token rows to selected expert paths, then weighted outputs are aggregated.</desc>
+  <rect width="960" height="300" rx="18" fill="#0f172a"/>
+  <g font-family="Arial, sans-serif" text-anchor="middle">
+    <rect x="42" y="91" width="160" height="100" rx="12" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/><text x="122" y="125" fill="#f8fafc" font-size="18" font-weight="700">Token states</text><text x="122" y="153" fill="#94a3b8" font-size="14">[B×T, D]</text><text x="122" y="176" fill="#94a3b8" font-size="14">flattened rows</text>
+    <rect x="265" y="91" width="160" height="100" rx="12" fill="#1e293b" stroke="#fbbf24" stroke-width="2"/><text x="345" y="125" fill="#f8fafc" font-size="18" font-weight="700">Top-k router</text><text x="345" y="153" fill="#fde68a" font-size="14">indices + weights</text><text x="345" y="176" fill="#94a3b8" font-size="14">select expert rows</text>
+    <rect x="488" y="35" width="125" height="70" rx="10" fill="#164e63"/><text x="550" y="65" fill="#cffafe" font-size="17" font-weight="700">Expert 0</text><text x="550" y="87" fill="#a5f3fc" font-size="13">token subset</text>
+    <rect x="488" y="115" width="125" height="70" rx="10" fill="#164e63"/><text x="550" y="145" fill="#cffafe" font-size="17" font-weight="700">Expert 1</text><text x="550" y="167" fill="#a5f3fc" font-size="13">token subset</text>
+    <rect x="488" y="195" width="125" height="70" rx="10" fill="#164e63"/><text x="550" y="225" fill="#cffafe" font-size="17" font-weight="700">Expert …</text><text x="550" y="247" fill="#a5f3fc" font-size="13">token subset</text>
+    <rect x="748" y="91" width="170" height="100" rx="12" fill="#1e293b" stroke="#4ade80" stroke-width="2"/><text x="833" y="125" fill="#f8fafc" font-size="18" font-weight="700">Aggregate</text><text x="833" y="153" fill="#bbf7d0" font-size="14">weighted index_add</text><text x="833" y="176" fill="#94a3b8" font-size="14">[B×T, D]</text>
+  </g>
+  <g stroke="#94a3b8" stroke-width="2" fill="none"><path d="M202 141 H265"/><path d="M425 141 H465 L488 70"/><path d="M425 141 H488"/><path d="M425 141 H465 L488 230"/><path d="M613 70 H680 L748 141"/><path d="M613 150 H748"/><path d="M613 230 H680 L748 160"/></g>
+  <g fill="#94a3b8"><path d="M260 141 l-8 -5 v10z"/><path d="M483 70 l-9 -2 6 8z"/><path d="M483 141 l-9 -5 v10z"/><path d="M483 230 l-6 -8 9 2z"/><path d="M743 141 l-9 -5 v10z"/><path d="M743 160 l-9 -5 v10z"/></g>
+</svg>

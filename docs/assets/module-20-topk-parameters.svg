@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="360" viewBox="0 0 960 360" role="img" aria-labelledby="title desc">
+  <title id="title">Top-k active parameter trade-off</title>
+  <desc id="desc">Total MoE parameters remain constant while active parameters increase with the number of selected routed experts.</desc>
+  <rect width="960" height="360" rx="18" fill="#111827"/>
+  <text x="48" y="48" fill="#f8fafc" font-family="Arial, sans-serif" font-size="24" font-weight="700">Top-k changes active computation</text>
+  <text x="48" y="75" fill="#94a3b8" font-family="Arial, sans-serif" font-size="15">Default toy configuration: eight routed experts and one shared expert</text>
+  <g stroke="#334155" stroke-width="1"><line x1="150" y1="280" x2="820" y2="280"/><line x1="150" y1="120" x2="150" y2="280"/></g>
+  <g fill="#38bdf8"><rect x="210" y="224" width="92" height="56" rx="6"/><rect x="360" y="190" width="92" height="90" rx="6"/><rect x="510" y="133" width="92" height="147" rx="6"/><rect x="660" y="120" width="92" height="160" rx="6"/></g>
+  <g fill="#cbd5e1" font-family="Arial, sans-serif" font-size="15" text-anchor="middle"><text x="256" y="305">K = 1</text><text x="406" y="305">K = 2</text><text x="556" y="305">K = 4</text><text x="706" y="305">K = 8</text><text x="105" y="226">active</text><text x="105" y="246">parameters</text></g>
+  <g fill="#e0f2fe" font-family="Arial, sans-serif" font-size="14" text-anchor="middle"><text x="256" y="214">395K</text><text x="406" y="180">592K</text><text x="556" y="123">985K</text><text x="706" y="110">1.77M</text></g>
+  <path d="M185 112 H790" stroke="#fb7185" stroke-width="3" stroke-dasharray="8 8"/><text x="800" y="116" fill="#fda4af" font-family="Arial, sans-serif" font-size="14">total = 1.77M</text>
+</svg>
