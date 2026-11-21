@@ -290,6 +290,29 @@ The router is in `src/model/router.py`, and the sparse MoE layer is in
 `src/model/moe.py`. The implementation uses sigmoid scores, top-k selection,
 `index_select` token dispatch, and `index_add` output aggregation.
 
+## Article 18 — Auxiliary-Loss-Free Load Balancing
+
+Open the executable notebook:
+
+```bash
+jupyter lab notebooks/18-load-balancing-router.ipynb
+```
+
+Run the balancing tests:
+
+```bash
+python -m pytest src/tests/test_balancing.py -v
+```
+
+Run the controlled bias-feedback experiment:
+
+```bash
+python -m src.experiments.moe_balancing
+```
+
+The router now keeps non-trainable `expert_bias` state. Biases affect expert
+selection only; selected output weights still use the original sigmoid scores.
+
 ## Run all current tests
 
 ```bash
@@ -317,4 +340,4 @@ Use the `python -m src...` form from the repository root. It keeps `src` on the 
 
 ## Current scope
 
-The repository currently contains the complete dense attention-and-RoPE baseline, tokenizer, dataset preparation, data-loading foundations, baseline training, autoregressive generation, MLA integration, compressed KV-cache inference, independent MoE expert networks, and single-device top-k routing. Load balancing, distributed training, and other scaling commands will be added as those components are implemented.
+The repository currently contains the complete dense attention-and-RoPE baseline, tokenizer, dataset preparation, data-loading foundations, baseline training, autoregressive generation, MLA integration, compressed KV-cache inference, independent MoE expert networks, single-device top-k routing, and expert-bias load balancing. Distributed training and other scaling commands will be added as those components are implemented.
