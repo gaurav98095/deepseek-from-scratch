@@ -337,6 +337,37 @@ The model is in `src/model/deepseek_moe.py`. It uses dense SwiGLU in the
 initial layers and MoE in later layers. `src/training/moe_balancer.py` records
 actual router assignments and updates balancing biases after optimizer steps.
 
+## Article 20 — DeepSeekMoE Experiments
+
+Open the executable notebook:
+
+```bash
+jupyter lab notebooks/20-deepseekmoe-experiments.ipynb
+```
+
+Inspect routing decisions and load metrics from a Python session with
+`src.experiments.analyze_routing.inspect_model_routing`. Run the isolated
+dense-versus-MoE benchmark with:
+
+```bash
+python -m src.experiments.benchmark_ffn \
+  --device cpu \
+  --batch-size 4 \
+  --seq-len 128 \
+  --warmup 5 \
+  --repeats 20
+```
+
+Use `--device cuda` on a CUDA machine. Run the experiment utility tests with:
+
+```bash
+python -m pytest src/tests/test_moe_experiments.py -v
+```
+
+The article covers dense-versus-MoE comparisons, routing balance, top-k
+active-parameter trade-offs, shared-expert ablations, specialization, and
+naive token-dispatch latency.
+
 ## Run all current tests
 
 ```bash

@@ -49,13 +49,19 @@ class ExpertBank(nn.Module):
                 for _ in range(self.n_routed)
             ]
         )
-        self.shared_expert = Expert(
-            dim=config.dim,
-            hidden_dim=config.n_shared_experts * config.moe_inter_dim,
+        self.shared_expert = (
+            Expert(
+                dim=config.dim,
+                hidden_dim=config.n_shared_experts * config.moe_inter_dim,
+            )
+            if config.n_shared_experts > 0
+            else None
         )
 
     def forward_shared(self, x: torch.Tensor) -> torch.Tensor:
         """Run the shared expert for every token."""
+        if self.shared_expert is None:
+            return torch.zeros_like(x)
         return self.shared_expert(x)
 
     def forward_expert(self, expert_id: int, x: torch.Tensor) -> torch.Tensor:

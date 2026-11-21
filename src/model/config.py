@@ -48,6 +48,8 @@ class DeepSeekConfig:
             raise ValueError("dim must be divisible by n_heads")
         if not 0 <= self.n_dense_layers <= self.n_layers:
             raise ValueError("n_dense_layers must be between 0 and n_layers")
+        if self.n_shared_experts < 0:
+            raise ValueError("n_shared_experts must be nonnegative")
         if not 1 <= self.n_activated_experts <= self.n_routed_experts:
             raise ValueError("invalid number of activated experts")
         if self.qk_rope_head_dim <= 0 or self.qk_rope_head_dim % 2 != 0:
