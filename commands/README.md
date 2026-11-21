@@ -226,7 +226,7 @@ python -m src.smoke_test_mla
 Open the executable notebook:
 
 ```bash
-jupyter lab notebooks/14-absorbed-mla-kv-cache.ipynb
+jupyter lab notebooks/14-kv-cache-and-absorption.ipynb
 ```
 
 Run the focused standalone-MLA and full-model cache tests:
@@ -238,7 +238,20 @@ python -m pytest src/tests/test_mla_cache.py -v
 The stateful cache implementation is in `src/model/mla_cache.py`. Both
 `CachedMLA` and `DeepSeekMLA` expose `reset_cache()`, `prefill()`, and
 `decode_step()` for explicit inference-state management. The article is
-`docs/14-absorbed-mla-kv-cache.md`.
+`docs/14-kv-cache-and-absorption.md`.
+
+## Article 15 — Why DeepSeek Uses Mixture of Experts
+
+Open the executable notebook:
+
+```bash
+jupyter lab notebooks/15-mixture-of-expert.ipynb
+```
+
+This article is conceptual. The notebook inspects the existing MoE
+configuration, calculates total versus active parameters, and demonstrates
+illustrative top-k routing scores. Expert networks and production routing are
+implemented in later articles.
 
 ## Run all current tests
 
