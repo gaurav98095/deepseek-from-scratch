@@ -5,6 +5,7 @@ from .deepseek import DeepSeekSkeleton
 from .deepseek_mla import DeepSeekMLA
 from .embeddings import TokenEmbedding
 from .attention import CausalSelfAttention
+from .experts import Expert, ExpertBank
 from .ffn import SwiGLUFFN
 from .mla import ContentOnlyMLA, KVCompression, MLA, QueryCompression
 from .mla_cache import CachedMLA
@@ -20,6 +21,8 @@ __all__ = [
     "DeepSeekSkeleton",
     "DeepSeekMLA",
     "DeepSeekBlock",
+    "Expert",
+    "ExpertBank",
     "RMSNorm",
     "RotaryEmbedding",
     "SwiGLUFFN",
