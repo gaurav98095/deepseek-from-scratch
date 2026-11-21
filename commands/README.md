@@ -368,6 +368,30 @@ The article covers dense-versus-MoE comparisons, routing balance, top-k
 active-parameter trade-offs, shared-expert ablations, specialization, and
 naive token-dispatch latency.
 
+## Article 21 — Understanding the Complete Transformer Block
+
+Open the executable notebook:
+
+```bash
+jupyter lab notebooks/21-understanding-tf-block.ipynb
+```
+
+Run the architecture inspection report:
+
+```bash
+python -m src.experiments.inspect_architecture
+```
+
+Run the focused architecture checks:
+
+```bash
+python -m pytest src/tests/test_architecture_inspection.py -v
+```
+
+The article traces pre-RMSNorm, both residual connections, dense-prefix/MoE-
+suffix layer selection, tensor shapes, parameter accounting, and the place of
+Multi-Token Prediction around the main Transformer stack.
+
 ## Run all current tests
 
 ```bash
