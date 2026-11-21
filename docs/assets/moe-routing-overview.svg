@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="450" viewBox="0 0 1100 450" role="img" aria-labelledby="title desc">
+  <title id="title">Dense FFN and sparse mixture of experts routing</title>
+  <desc id="desc">A dense token uses one feed-forward network, while a mixture-of-experts token uses a router, one shared expert, and two selected routed experts.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#475569"/>
+    </marker>
+    <style>
+      .title { font: 700 22px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #0f172a; }
+      .heading { font: 700 18px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #0f172a; }
+      .label { font: 600 15px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #334155; }
+      .small { font: 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #475569; }
+    </style>
+  </defs>
+  <rect width="1100" height="450" rx="18" fill="#f8fafc"/>
+  <text x="550" y="38" text-anchor="middle" class="title">Dense computation versus sparse conditional computation</text>
+  <rect x="30" y="70" width="490" height="335" rx="16" fill="#eff6ff" stroke="#93c5fd" stroke-width="2"/>
+  <rect x="560" y="70" width="510" height="335" rx="16" fill="#f0fdf4" stroke="#86efac" stroke-width="2"/>
+  <text x="275" y="108" text-anchor="middle" class="heading">Dense FFN</text>
+  <text x="815" y="108" text-anchor="middle" class="heading">Sparse MoE</text>
+  <rect x="75" y="145" width="145" height="62" rx="10" fill="#dbeafe"/>
+  <text x="147" y="172" text-anchor="middle" class="label">Token x</text>
+  <text x="147" y="192" text-anchor="middle" class="small">[hidden dimension]</text>
+  <rect x="300" y="145" width="160" height="62" rx="10" fill="#bfdbfe"/>
+  <text x="380" y="172" text-anchor="middle" class="label">One SwiGLU FFN</text>
+  <text x="380" y="192" text-anchor="middle" class="small">all parameters run</text>
+  <line x1="220" y1="176" x2="296" y2="176" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="380" y1="207" x2="380" y2="260" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="160" y="263" width="290" height="62" rx="10" fill="#dbeafe"/>
+  <text x="305" y="290" text-anchor="middle" class="label">Output y</text>
+  <text x="305" y="310" text-anchor="middle" class="small">same path for every token</text>
+  <rect x="600" y="135" width="130" height="54" rx="10" fill="#dcfce7"/>
+  <text x="665" y="160" text-anchor="middle" class="label">Token x</text>
+  <text x="665" y="178" text-anchor="middle" class="small">one vector</text>
+  <rect x="780" y="135" width="150" height="54" rx="10" fill="#bbf7d0"/>
+  <text x="855" y="160" text-anchor="middle" class="label">Router</text>
+  <text x="855" y="178" text-anchor="middle" class="small">selects experts</text>
+  <line x1="730" y1="162" x2="776" y2="162" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="600" y="235" width="130" height="54" rx="10" fill="#fef3c7"/>
+  <text x="665" y="260" text-anchor="middle" class="label">Shared E</text>
+  <text x="665" y="278" text-anchor="middle" class="small">always active</text>
+  <rect x="780" y="210" width="120" height="48" rx="10" fill="#a7f3d0"/>
+  <text x="840" y="239" text-anchor="middle" class="label">Routed E2</text>
+  <rect x="925" y="210" width="120" height="48" rx="10" fill="#a7f3d0"/>
+  <text x="985" y="239" text-anchor="middle" class="label">Routed E5</text>
+  <text x="910" y="281" text-anchor="middle" class="small">top-2 selected</text>
+  <line x1="855" y1="189" x2="840" y2="205" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="870" y1="189" x2="985" y2="205" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="665" y1="189" x2="665" y2="230" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="730" y1="262" x2="780" y2="322" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="840" y1="258" x2="840" y2="322" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="985" y1="258" x2="930" y2="322" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="740" y="326" width="220" height="52" rx="10" fill="#bbf7d0"/>
+  <text x="850" y="350" text-anchor="middle" class="label">Shared + weighted routed output</text>
+  <text x="850" y="367" text-anchor="middle" class="small">only selected experts execute</text>
+</svg>
