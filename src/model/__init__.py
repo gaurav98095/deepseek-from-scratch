@@ -15,6 +15,8 @@ from .final_deepseek import (
 from .mla import ContentOnlyMLA, KVCompression, MLA, QueryCompression
 from .mla_cache import CachedMLA
 from .moe import DeepSeekMoE
+from .mtp import MTPModule
+from .deepseek_with_mtp import DeepSeekWithMTP
 from .rmsnorm import RMSNorm
 from .rope import RotaryEmbedding
 from .router import TopKRouter
@@ -31,6 +33,7 @@ __all__ = [
     "FinalTinyDeepSeek",
     "DeepSeekMoEBlock",
     "DeepSeekMoE",
+    "DeepSeekWithMTP",
     "DeepSeekBlock",
     "Expert",
     "ExpertBank",
@@ -40,6 +43,7 @@ __all__ = [
     "ContentOnlyMLA",
     "KVCompression",
     "MLA",
+    "MTPModule",
     "QueryCompression",
     "TransformerBlock",
     "TokenEmbedding",

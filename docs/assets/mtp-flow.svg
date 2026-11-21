@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="330" viewBox="0 0 980 330" role="img" aria-labelledby="title desc">
+  <title id="title">Sequential Multi-Token Prediction flow</title>
+  <desc id="desc">A main hidden state and the embedding of the actual next token are normalized, concatenated, projected, processed by an additional causal block, and sent to the shared vocabulary head to predict the following token.</desc>
+  <rect width="980" height="330" rx="18" fill="#0f172a"/>
+  <text x="42" y="42" fill="#f8fafc" font-family="Arial, sans-serif" font-size="24" font-weight="700">One-stage sequential MTP</text>
+  <text x="42" y="68" fill="#94a3b8" font-family="Arial, sans-serif" font-size="15">At position i: hidden hᵢ + teacher-forced embedding Emb(tᵢ₊₁) → predict tᵢ₊₂</text>
+  <g font-family="Arial, sans-serif" text-anchor="middle">
+    <rect x="38" y="112" width="174" height="82" rx="11" fill="#172554" stroke="#60a5fa" stroke-width="2"/><text x="125" y="145" fill="#dbeafe" font-size="18" font-weight="700">Main hidden</text><text x="125" y="171" fill="#bfdbfe" font-size="14">hᵢ [D]</text>
+    <rect x="38" y="215" width="174" height="82" rx="11" fill="#164e63" stroke="#22d3ee" stroke-width="2"/><text x="125" y="248" fill="#cffafe" font-size="18" font-weight="700">Next embedding</text><text x="125" y="274" fill="#a5f3fc" font-size="14">Emb(tᵢ₊₁) [D]</text>
+    <rect x="278" y="145" width="135" height="103" rx="11" fill="#1e293b" stroke="#fbbf24" stroke-width="2"/><text x="345" y="180" fill="#fef3c7" font-size="18" font-weight="700">Norm + concat</text><text x="345" y="207" fill="#fde68a" font-size="14">[2D]</text><text x="345" y="229" fill="#fde68a" font-size="14">→ project [D]</text>
+    <rect x="479" y="145" width="155" height="103" rx="11" fill="#052e16" stroke="#4ade80" stroke-width="2"/><text x="556" y="180" fill="#dcfce7" font-size="18" font-weight="700">MTP block</text><text x="556" y="207" fill="#bbf7d0" font-size="14">causal MLA</text><text x="556" y="229" fill="#bbf7d0" font-size="14">+ FFN / MoE</text>
+    <rect x="700" y="145" width="230" height="103" rx="11" fill="#1e293b" stroke="#f472b6" stroke-width="2"/><text x="815" y="180" fill="#fce7f3" font-size="18" font-weight="700">Shared LM head</text><text x="815" y="207" fill="#fbcfe8" font-size="14">vocabulary logits</text><text x="815" y="229" fill="#fbcfe8" font-size="14">predict tᵢ₊₂</text>
+  </g>
+  <g stroke="#94a3b8" stroke-width="2" fill="none"><path d="M212 153 H250 L278 174"/><path d="M212 256 H250 L278 220"/><path d="M413 196 H479"/><path d="M634 196 H700"/></g>
+  <g fill="#94a3b8"><path d="M273 174 l-9 -5 v10z"/><path d="M273 220 l-9 -5 v10z"/><path d="M474 196 l-9 -5 v10z"/><path d="M695 196 l-9 -5 v10z"/></g>
+</svg>
