@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="430" viewBox="0 0 1100 430" role="img" aria-labelledby="title desc">
+  <title id="title">Expert load balancing feedback</title>
+  <desc id="desc">Measured expert assignments update routing biases, which change future top-k selection while original scores still weight outputs.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#475569"/>
+    </marker>
+    <style>
+      .title { font: 700 22px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #0f172a; }
+      .heading { font: 700 17px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #0f172a; }
+      .label { font: 600 14px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #334155; }
+      .small { font: 13px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #475569; }
+    </style>
+  </defs>
+  <rect width="1100" height="430" rx="18" fill="#f8fafc"/>
+  <text x="550" y="38" text-anchor="middle" class="title">Bias feedback balances expert selection</text>
+  <rect x="35" y="85" width="235" height="105" rx="14" fill="#fef3c7" stroke="#f59e0b" stroke-width="2"/>
+  <text x="152" y="118" text-anchor="middle" class="heading">Original affinities</text>
+  <text x="152" y="147" text-anchor="middle" class="label">sᵢ = sigmoid(Wᵢx)</text>
+  <text x="152" y="171" text-anchor="middle" class="small">learned by gradients</text>
+  <rect x="330" y="85" width="235" height="105" rx="14" fill="#dbeafe" stroke="#60a5fa" stroke-width="2"/>
+  <text x="447" y="118" text-anchor="middle" class="heading">Adjusted selection</text>
+  <text x="447" y="147" text-anchor="middle" class="label">sᵢ + biasᵢ</text>
+  <text x="447" y="171" text-anchor="middle" class="small">top-k identities only</text>
+  <line x1="270" y1="137" x2="326" y2="137" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="625" y="85" width="235" height="105" rx="14" fill="#dcfce7" stroke="#4ade80" stroke-width="2"/>
+  <text x="742" y="118" text-anchor="middle" class="heading">Selected experts</text>
+  <text x="742" y="147" text-anchor="middle" class="label">dispatch + execute</text>
+  <text x="742" y="171" text-anchor="middle" class="small">original sᵢ weight outputs</text>
+  <line x1="565" y1="137" x2="621" y2="137" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <rect x="400" y="270" width="300" height="82" rx="14" fill="#ede9fe" stroke="#8b5cf6" stroke-width="2"/>
+  <text x="550" y="302" text-anchor="middle" class="heading">Measure assignments</text>
+  <text x="550" y="328" text-anchor="middle" class="small">counts Lᵢ vs target NK/E</text>
+  <path d="M742 190 L742 240 L700 240 L700 270" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <path d="M400 311 L300 311 L300 220 L447 190" fill="none" stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="140" y="244" text-anchor="middle" class="small">overloaded: bias −γ</text>
+  <text x="930" y="244" text-anchor="middle" class="small">underloaded: bias +γ</text>
+  <text x="550" y="402" text-anchor="middle" class="small">Biases update once after the training step, outside autograd and outside AdamW.</text>
+</svg>
