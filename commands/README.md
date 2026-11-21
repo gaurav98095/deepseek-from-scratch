@@ -412,6 +412,25 @@ full-sequence `forward`, cached `prefill`, one-token `decode_step`,
 `src/training/checkpoint.py` to save and restore model configuration, weights,
 router buffers, and optional optimizer state.
 
+## Article 23 — Multi-Token Prediction
+
+Open the executable notebook:
+
+```bash
+jupyter lab notebooks/23-multi-token-prediction.ipynb
+```
+
+Run the MTP alignment, gradient, and future-token leakage tests:
+
+```bash
+python -m pytest src/tests/test_mtp.py -v
+```
+
+The one-stage `MTPModule` is in `src/model/mtp.py`. The
+`DeepSeekWithMTP` wrapper in `src/model/deepseek_with_mtp.py` combines the
+ordinary next-token loss with the weighted two-ahead loss while sharing the
+main embedding table and vocabulary head.
+
 ## Run all current tests
 
 ```bash
