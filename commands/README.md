@@ -272,6 +272,24 @@ SwiGLU experts, independently registered routed experts, the shared expert,
 manual weighted combination, parameter counts, and sparse gradient flow.
 Top-k routing and token dispatch are intentionally not included yet.
 
+## Article 17 — Top-k Routing and Token Dispatch
+
+Open the executable notebook:
+
+```bash
+jupyter lab notebooks/17-topk-routing.ipynb
+```
+
+Run the routing and sparse-dispatch tests:
+
+```bash
+python -m pytest src/tests/test_moe.py -v
+```
+
+The router is in `src/model/router.py`, and the sparse MoE layer is in
+`src/model/moe.py`. The implementation uses sigmoid scores, top-k selection,
+`index_select` token dispatch, and `index_add` output aggregation.
+
 ## Run all current tests
 
 ```bash
@@ -299,4 +317,4 @@ Use the `python -m src...` form from the repository root. It keeps `src` on the 
 
 ## Current scope
 
-The repository currently contains the complete dense attention-and-RoPE baseline, tokenizer, dataset preparation, data-loading foundations, baseline training, autoregressive generation, MLA integration, compressed KV-cache inference, and independent MoE expert networks. Top-k routing, distributed training, and other scaling commands will be added as those components are implemented.
+The repository currently contains the complete dense attention-and-RoPE baseline, tokenizer, dataset preparation, data-loading foundations, baseline training, autoregressive generation, MLA integration, compressed KV-cache inference, independent MoE expert networks, and single-device top-k routing. Load balancing, distributed training, and other scaling commands will be added as those components are implemented.

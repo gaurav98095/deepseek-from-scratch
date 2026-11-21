@@ -9,8 +9,10 @@ from .experts import Expert, ExpertBank
 from .ffn import SwiGLUFFN
 from .mla import ContentOnlyMLA, KVCompression, MLA, QueryCompression
 from .mla_cache import CachedMLA
+from .moe import DeepSeekMoE
 from .rmsnorm import RMSNorm
 from .rope import RotaryEmbedding
+from .router import TopKRouter
 from .transformer import AttentionBlock, DeepSeekBlock, TransformerBlock
 
 __all__ = [
@@ -20,6 +22,7 @@ __all__ = [
     "DeepSeekConfig",
     "DeepSeekSkeleton",
     "DeepSeekMLA",
+    "DeepSeekMoE",
     "DeepSeekBlock",
     "Expert",
     "ExpertBank",
@@ -32,4 +35,5 @@ __all__ = [
     "QueryCompression",
     "TransformerBlock",
     "TokenEmbedding",
+    "TopKRouter",
 ]
