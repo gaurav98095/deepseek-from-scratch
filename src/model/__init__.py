@@ -8,6 +8,10 @@ from .embeddings import TokenEmbedding
 from .attention import CausalSelfAttention
 from .experts import Expert, ExpertBank
 from .ffn import SwiGLUFFN
+from .final_deepseek import (
+    FinalDeepSeekBlock,
+    TinyDeepSeek as FinalTinyDeepSeek,
+)
 from .mla import ContentOnlyMLA, KVCompression, MLA, QueryCompression
 from .mla_cache import CachedMLA
 from .moe import DeepSeekMoE
@@ -23,6 +27,8 @@ __all__ = [
     "DeepSeekConfig",
     "DeepSeekSkeleton",
     "DeepSeekMLA",
+    "FinalDeepSeekBlock",
+    "FinalTinyDeepSeek",
     "DeepSeekMoEBlock",
     "DeepSeekMoE",
     "DeepSeekBlock",

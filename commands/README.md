@@ -392,6 +392,26 @@ The article traces pre-RMSNorm, both residual connections, dense-prefix/MoE-
 suffix layer selection, tensor shapes, parameter accounting, and the place of
 Multi-Token Prediction around the main Transformer stack.
 
+## Article 22 — Assembling the Final DeepSeek Model
+
+Open the executable notebook:
+
+```bash
+jupyter lab notebooks/22-assembling-deepseek.ipynb
+```
+
+Run the final-model integration tests:
+
+```bash
+python -m pytest src/tests/test_final_deepseek.py -v
+```
+
+The consolidated model lives in `src/model/final_deepseek.py`. It exposes
+full-sequence `forward`, cached `prefill`, one-token `decode_step`,
+`reset_cache`, and `return_hidden=True` for the next MTP implementation. Use
+`src/training/checkpoint.py` to save and restore model configuration, weights,
+router buffers, and optional optimizer state.
+
 ## Run all current tests
 
 ```bash
