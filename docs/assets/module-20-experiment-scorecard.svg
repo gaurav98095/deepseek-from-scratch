@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="300" viewBox="0 0 900 300" role="img" aria-labelledby="title desc">
+  <title id="title">MoE experiment scorecard</title>
+  <desc id="desc">Three matched model configurations are compared across validation loss, throughput, memory, and routing balance.</desc>
+  <rect width="900" height="300" rx="20" fill="#0f172a"/>
+  <text x="450" y="34" fill="#f8fafc" font-family="Arial, sans-serif" font-size="20" text-anchor="middle" font-weight="700">Compare one architectural choice at a time</text>
+  <g font-family="Arial, sans-serif" font-size="14"><text x="34" y="80" fill="#cbd5e1">Configuration</text><text x="270" y="80" fill="#cbd5e1">Val loss ↓</text><text x="410" y="80" fill="#cbd5e1">Tokens/s ↑</text><text x="570" y="80" fill="#cbd5e1">Memory ↓</text><text x="720" y="80" fill="#cbd5e1">Load CV ↓</text>
+    <g fill="#1e293b"><rect x="25" y="96" width="850" height="42" rx="7"/><rect x="25" y="146" width="850" height="42" rx="7"/><rect x="25" y="196" width="850" height="42" rx="7"/></g>
+    <g fill="#e2e8f0"><text x="40" y="122">Dense MLA</text><text x="40" y="172">MLA + MoE</text><text x="40" y="222">MLA + MoE + MTP</text><text x="270" y="122">measure</text><text x="410" y="122">measure</text><text x="570" y="122">measure</text><text x="720" y="122">n/a</text><text x="270" y="172">measure</text><text x="410" y="172">measure</text><text x="570" y="172">measure</text><text x="720" y="172">measure</text><text x="270" y="222">measure</text><text x="410" y="222">measure</text><text x="570" y="222">measure</text><text x="720" y="222">measure</text></g>
+  </g>
+  <text x="450" y="270" fill="#cbd5e1" font-family="Arial, sans-serif" font-size="13" text-anchor="middle">Use the same tokenizer, data, seed policy, token budget, and evaluation windows</text>
+</svg>

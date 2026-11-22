@@ -99,6 +99,7 @@ def test_full_checkpoint_restores_training_state(tmp_path) -> None:
         train_batcher=train_batcher,
         val_batcher=val_batcher,
         run_settings=settings,
+        best_val_loss=2.5,
     )
 
     restored_model = DeepSeekWithMTP(small_config())
@@ -117,6 +118,7 @@ def test_full_checkpoint_restores_training_state(tmp_path) -> None:
     )
 
     assert state["step"] == 3
+    assert state["best_val_loss"] == 2.5
     for key, value in model.state_dict().items():
         torch.testing.assert_close(value, restored_model.state_dict()[key])
 

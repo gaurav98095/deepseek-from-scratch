@@ -31,6 +31,7 @@ def main() -> None:
         args = argparse.Namespace(
             data_dir=str(data_dir),
             checkpoint=str(checkpoint),
+            best_checkpoint=str(root / "checkpoints" / "best.pt"),
             resume=None,
             log_path=str(root / "training_log.csv"),
             steps=2,

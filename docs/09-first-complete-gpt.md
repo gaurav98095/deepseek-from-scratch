@@ -384,6 +384,8 @@ def generate(model, input_ids, max_new_tokens, temperature=1.0):
 
 This simple version recomputes the whole visible context on every step. It is easy to understand, but inefficient for long generation. A KV cache will avoid repeating earlier attention computation when we study inference in detail.
 
+![Training updates model weights, while generation reuses fixed weights in an autoregressive loop.](assets/module-09-training-generation.svg)
+
 The reusable implementation is in `src/generate.py`. Generate from a saved checkpoint with:
 
 ```bash

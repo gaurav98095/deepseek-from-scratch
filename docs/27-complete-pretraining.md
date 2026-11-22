@@ -150,6 +150,8 @@ checkpoint stores:
 with `os.replace`, so a process interruption does not leave a half-written
 checkpoint at the final path.
 
+![Latest and best checkpoints preserve the state needed to resume pretraining.](assets/module-27-checkpoint-resume.svg)
+
 ```python
 from src.training import load_training_checkpoint
 

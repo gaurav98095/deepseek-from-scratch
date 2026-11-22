@@ -40,6 +40,8 @@ For a 14.85M-parameter model, that baseline is about 238 MB. It excludes
 activations, temporary attention tensors, CUDA workspaces, allocator overhead,
 and the MTP branch.
 
+![Weights, gradients, optimizer state, and activations contribute to training memory while microbatches share one optimizer update.](assets/module-26-memory-accumulation.svg)
+
 Activation memory grows with batch size, sequence length, and layer count. A
 single `[4,1024,256]` hidden tensor takes roughly 2 MiB in BF16, but each layer
 also creates projections, attention intermediates, SwiGLU values, and expert

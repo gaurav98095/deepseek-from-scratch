@@ -93,6 +93,8 @@ The routed part of the output is
 
 \[
 \boxed{0.5333E_1(x)+0.4667E_3(x)}.
+
+![A score matrix with the top-two expert scores highlighted for each token.](assets/module-17-router-score-matrix.svg)
 \]
 
 Adding the shared expert gives the complete output:

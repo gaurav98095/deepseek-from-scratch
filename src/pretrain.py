@@ -112,8 +112,12 @@ def run_pretraining(args: argparse.Namespace) -> dict[str, Any]:
     """Run training from scratch or resume from ``args.resume``."""
     if args.steps <= 0 or args.batch_size <= 0 or args.accum_steps <= 0:
         raise ValueError("steps, batch_size, and accum_steps must be positive")
-    if args.eval_interval <= 0 or args.eval_batches <= 0:
-        raise ValueError("evaluation settings must be positive")
+    if (
+        args.eval_interval <= 0
+        or args.eval_batches <= 0
+        or args.save_interval <= 0
+    ):
+        raise ValueError("evaluation and checkpoint intervals must be positive")
 
     set_seed(args.seed)
     data_dir = Path(args.data_dir)
@@ -156,6 +160,12 @@ def run_pretraining(args: argparse.Namespace) -> dict[str, Any]:
         )
         start_step = int(state["step"])
         print(f"Resumed from step {start_step}: {args.resume}")
+        saved_best = state.get("best_val_loss")
+        if saved_best is None:
+            saved_best = state.get("metrics", {}).get("val_loss")
+        best_val_loss = float(saved_best) if saved_best is not None else float("inf")
+    else:
+        best_val_loss = float("inf")
 
     log_path = Path(args.log_path)
     last_metrics: dict[str, Any] = {}
@@ -183,6 +193,7 @@ def run_pretraining(args: argparse.Namespace) -> dict[str, Any]:
             )
             last_metrics = dict(metrics)
             validation: dict[str, Any] = {}
+            is_best = False
             if step % args.eval_interval == 0 or step == args.steps:
                 validation = evaluate_main_model(
                     model.main_model,
@@ -195,6 +206,9 @@ def run_pretraining(args: argparse.Namespace) -> dict[str, Any]:
                 balancer.clear()
                 model.train()
                 last_metrics.update(validation)
+                if validation["val_loss"] < best_val_loss:
+                    best_val_loss = float(validation["val_loss"])
+                    is_best = True
 
             row = {"step": step, **last_metrics}
             _append_log(log_path, row)
@@ -221,8 +235,22 @@ def run_pretraining(args: argparse.Namespace) -> dict[str, Any]:
                     val_batcher=val_batcher,
                     run_settings=settings,
                     metrics=row,
+                    best_val_loss=best_val_loss,
                 )
                 print(f"saved checkpoint: {args.checkpoint}")
+            if is_best:
+                save_training_checkpoint(
+                    args.best_checkpoint,
+                    model=model,
+                    optimizer=optimizer,
+                    step=step,
+                    train_batcher=train_batcher,
+                    val_batcher=val_batcher,
+                    run_settings=settings,
+                    metrics=row,
+                    best_val_loss=best_val_loss,
+                )
+                print(f"saved best checkpoint: {args.best_checkpoint}")
 
     return {"step": max(start_step, args.steps), **last_metrics}
 
@@ -231,6 +259,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data-dir", default="data/processed")
     parser.add_argument("--checkpoint", default="checkpoints/latest.pt")
+    parser.add_argument("--best-checkpoint", default="checkpoints/best.pt")
     parser.add_argument("--resume", default=None)
     parser.add_argument("--log-path", default="training_log.csv")
     parser.add_argument("--steps", type=int, default=2_000)

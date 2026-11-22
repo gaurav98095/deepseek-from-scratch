@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="280" viewBox="0 0 1040 280" role="img" aria-labelledby="title desc">
+  <title id="title">DeepSeek evaluation workflow</title>
+  <desc id="desc">A checkpoint is evaluated on fixed windows, routing statistics are collected, and results are compared with training curves.</desc>
+  <rect width="1040" height="280" rx="20" fill="#0f172a"/>
+  <text x="520" y="36" fill="#f8fafc" font-family="Arial, sans-serif" font-size="21" text-anchor="middle" font-weight="700">Evaluate before changing the model</text>
+  <g font-family="Arial, sans-serif" font-size="15" text-anchor="middle">
+    <rect x="40" y="98" width="180" height="78" rx="14" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+    <text x="130" y="130" fill="#bae6fd">Checkpoint</text><text x="130" y="155" fill="#e2e8f0">latest.pt / best.pt</text>
+    <rect x="280" y="98" width="180" height="78" rx="14" fill="#1e293b" stroke="#a78bfa" stroke-width="2"/>
+    <text x="370" y="130" fill="#ddd6fe">Fixed windows</text><text x="370" y="155" fill="#e2e8f0">loss + perplexity</text>
+    <rect x="520" y="98" width="180" height="78" rx="14" fill="#1e293b" stroke="#34d399" stroke-width="2"/>
+    <text x="610" y="130" fill="#bbf7d0">MoE routing</text><text x="610" y="155" fill="#e2e8f0">counts + CV</text>
+    <rect x="760" y="98" width="240" height="78" rx="14" fill="#1e293b" stroke="#fbbf24" stroke-width="2"/>
+    <text x="880" y="130" fill="#fef3c7">Scorecard</text><text x="880" y="155" fill="#e2e8f0">curves + next experiment</text>
+  </g>
+  <g fill="none" stroke="#94a3b8" stroke-width="2">
+    <path d="M220 137h60"/><path d="M460 137h60"/><path d="M700 137h60"/>
+  </g>
+  <g fill="#94a3b8">
+    <path d="M270 137l-9-6v12z"/><path d="M510 137l-9-6v12z"/><path d="M750 137l-9-6v12z"/>
+  </g>
+  <text x="520" y="225" fill="#cbd5e1" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">Use identical validation positions before comparing checkpoints or ablations</text>
+</svg>
