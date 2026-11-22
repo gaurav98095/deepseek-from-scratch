@@ -505,6 +505,49 @@ gradient clipping and AdamW update, then updates each balancing bias once. The
 final model's `set_activation_checkpointing(True)` checkpoints MLA attention
 only, keeping MoE routing hooks from recording recomputation twice.
 
+## Article 27 — End-to-End DeepSeek Pretraining
+
+Prepare the token files used by the pretraining entry point:
+
+```bash
+make prepare-data
+```
+
+Run the self-contained pretraining smoke test:
+
+```bash
+make smoke-pretrain
+```
+
+Run the focused data, evaluation, and checkpoint tests:
+
+```bash
+make test-module-27
+```
+
+Start the default 2,000-step run:
+
+```bash
+make run-pretraining
+```
+
+Resume the same run from its latest checkpoint:
+
+```bash
+make resume-pretraining
+```
+
+Override the defaults for a short run:
+
+```bash
+make run-pretraining STEPS=20 BATCH_SIZE=2 ACCUM_STEPS=2 \
+  EVAL_INTERVAL=10 SAVE_INTERVAL=10
+```
+
+The underlying entry point is `python -m src.pretrain`. It combines random
+memmap batches, BF16-aware accumulation, main-model validation, CSV logging,
+and atomic resumable checkpoints.
+
 ## Run all current tests
 
 ```bash
