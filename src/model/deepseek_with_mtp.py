@@ -87,3 +87,8 @@ class DeepSeekWithMTP(nn.Module):
     def reset_cache(self) -> None:
         """Clear the main model's inference caches."""
         self.main_model.reset_cache()
+
+    def set_activation_checkpointing(self, enabled: bool = True) -> None:
+        """Checkpoint MLA attention in the main and MTP Transformer blocks."""
+        self.main_model.set_activation_checkpointing(enabled)
+        self.mtp_module.block.activation_checkpointing = enabled

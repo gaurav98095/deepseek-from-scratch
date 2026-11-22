@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="350" viewBox="0 0 980 350" role="img" aria-labelledby="title desc">
+  <title id="title">Efficient DeepSeek training</title>
+  <desc id="desc">Two microbatches run forward and backward with BF16 autocast, gradients accumulate, then one clipping, AdamW, and expert-bias update occurs.</desc>
+  <rect width="980" height="350" rx="18" fill="#0f172a"/>
+  <text x="42" y="42" fill="#f8fafc" font-family="Arial, sans-serif" font-size="24" font-weight="700">Efficient training step</text>
+  <text x="42" y="68" fill="#94a3b8" font-family="Arial, sans-serif" font-size="15">BF16 execution + accumulation + attention checkpointing</text>
+  <g font-family="Arial, sans-serif" text-anchor="middle">
+    <rect x="40" y="112" width="170" height="86" rx="11" fill="#172554" stroke="#60a5fa" stroke-width="2"/><text x="125" y="146" fill="#dbeafe" font-size="18" font-weight="700">Microbatch 1</text><text x="125" y="173" fill="#bfdbfe" font-size="14">forward + backward</text>
+    <rect x="40" y="220" width="170" height="86" rx="11" fill="#164e63" stroke="#22d3ee" stroke-width="2"/><text x="125" y="254" fill="#cffafe" font-size="18" font-weight="700">Microbatch 2</text><text x="125" y="281" fill="#a5f3fc" font-size="14">forward + backward</text>
+    <rect x="290" y="145" width="170" height="108" rx="11" fill="#422006" stroke="#fbbf24" stroke-width="2"/><text x="375" y="180" fill="#fef3c7" font-size="18" font-weight="700">Accumulated</text><text x="375" y="207" fill="#fde68a" font-size="14">averaged gradients</text><text x="375" y="230" fill="#fde68a" font-size="14">router records</text>
+    <rect x="540" y="145" width="170" height="108" rx="11" fill="#3f172e" stroke="#f472b6" stroke-width="2"/><text x="625" y="180" fill="#fce7f3" font-size="18" font-weight="700">One update</text><text x="625" y="207" fill="#fbcfe8" font-size="14">clip + AdamW</text><text x="625" y="230" fill="#fbcfe8" font-size="14">then bias update</text>
+    <rect x="790" y="145" width="150" height="108" rx="11" fill="#052e16" stroke="#4ade80" stroke-width="2"/><text x="865" y="180" fill="#dcfce7" font-size="18" font-weight="700">Next step</text><text x="865" y="207" fill="#bbf7d0" font-size="14">peak memory</text><text x="865" y="230" fill="#bbf7d0" font-size="14">stays microbatch-sized</text>
+  </g>
+  <g stroke="#94a3b8" stroke-width="2" fill="none"><path d="M210 155 H250 L290 175"/><path d="M210 263 H250 L290 220"/><path d="M460 199 H540"/><path d="M710 199 H790"/></g>
+  <g fill="#94a3b8"><path d="M285 175 l-9 -5 v10z"/><path d="M285 220 l-9 -5 v10z"/><path d="M535 199 l-9 -5 v10z"/><path d="M785 199 l-9 -5 v10z"/></g>
+  <text x="490" y="320" fill="#7dd3fc" font-family="Arial, sans-serif" font-size="14" text-anchor="middle">Checkpoint attention activations; leave MoE hooks on the actual forward only</text>
+</svg>

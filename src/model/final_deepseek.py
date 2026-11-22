@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import torch
 from torch import nn
+from torch.utils.checkpoint import checkpoint
 
 from .config import DeepSeekConfig
 from .embeddings import TokenEmbedding
@@ -23,6 +24,7 @@ class FinalDeepSeekBlock(nn.Module):
 
         self.layer_id = layer_id
         self.is_moe = layer_id >= config.n_dense_layers
+        self.activation_checkpointing = False
         self.attn_norm = RMSNorm(config.dim, eps=1e-6)
         self.attention = CachedMLA(config)
         self.ffn_norm = RMSNorm(config.dim, eps=1e-6)
@@ -32,7 +34,20 @@ class FinalDeepSeekBlock(nn.Module):
             self.ffn = SwiGLUFFN(config.dim, config.inter_dim)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = x + self.attention(self.attn_norm(x))
+        attention_input = self.attn_norm(x)
+        if (
+            self.training
+            and self.activation_checkpointing
+            and torch.is_grad_enabled()
+        ):
+            attention_output = checkpoint(
+                self.attention,
+                attention_input,
+                use_reentrant=False,
+            )
+        else:
+            attention_output = self.attention(attention_input)
+        x = x + attention_output
         return x + self.ffn(self.ffn_norm(x))
 
     @torch.no_grad()
@@ -143,6 +158,11 @@ class TinyDeepSeek(nn.Module):
         """Clear dynamic KV caches without changing learned parameters."""
         for layer in self.layers:
             layer.reset_cache()
+
+    def set_activation_checkpointing(self, enabled: bool = True) -> None:
+        """Toggle attention-only activation checkpointing for all main blocks."""
+        for layer in self.layers:
+            layer.activation_checkpointing = enabled
 
     @property
     def cache_length(self) -> int:

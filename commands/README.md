@@ -480,6 +480,31 @@ The training helpers are `src/training/optimizer.py`,
 combines the main and MTP losses, clips gradients, updates AdamW parameters,
 and then updates all recorded expert-balancing biases.
 
+## Article 26 — BF16, Gradient Accumulation, and GPU Training
+
+Open the executable notebook:
+
+```bash
+jupyter lab notebooks/26-bf16-gradaccum-gputrain.ipynb
+```
+
+Run the efficient-training tests:
+
+```bash
+python -m pytest src/tests/test_efficient_training.py -v
+```
+
+Run the BF16-aware accumulation smoke test:
+
+```bash
+python -m src.smoke_efficient_training
+```
+
+The efficient step aggregates router records across microbatches, performs one
+gradient clipping and AdamW update, then updates each balancing bias once. The
+final model's `set_activation_checkpointing(True)` checkpoints MLA attention
+only, keeping MoE routing hooks from recording recomputation twice.
+
 ## Run all current tests
 
 ```bash
