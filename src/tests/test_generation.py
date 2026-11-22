@@ -1,7 +1,7 @@
 import torch
 
 from src.generate import generate
-from src.model import DeepSeekConfig, DeepSeekSkeleton
+from src.model import DeepSeekConfig, TinyDeepSeek
 
 
 def test_generate_preserves_prompt_and_adds_tokens() -> None:
@@ -13,7 +13,7 @@ def test_generate_preserves_prompt_and_adds_tokens() -> None:
         inter_dim=32,
         max_seq_len=8,
     )
-    model = DeepSeekSkeleton(config)
+    model = TinyDeepSeek(config)
     prompt = torch.tensor([[1, 2, 3]])
 
     output = generate(

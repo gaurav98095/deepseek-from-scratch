@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from src.model import CachedMLA, DeepSeekConfig, DeepSeekMLA
+from src.model import CachedMLA, DeepSeekConfig
 
 
 def small_config() -> DeepSeekConfig:
@@ -93,41 +93,3 @@ def test_cache_rejects_batch_size_changes() -> None:
 
     with pytest.raises(ValueError, match="Batch size changed"):
         model.decode_step(torch.randn(2, 1, config.dim))
-
-
-def test_full_model_prefill_and_decode_match_forward() -> None:
-    torch.manual_seed(3)
-    config = small_config()
-    model = DeepSeekMLA(config).eval()
-    tokens = torch.randint(0, config.vocab_size, (1, 9))
-
-    with torch.no_grad():
-        expected = model(tokens)
-        model.reset_cache()
-        model.prefill(tokens[:, :-1])
-        actual = model.decode_step(tokens[:, -1:])
-
-    torch.testing.assert_close(
-        actual,
-        expected[:, -1:],
-        rtol=2e-4,
-        atol=2e-4,
-    )
-
-
-def test_full_model_incremental_decoding_matches_forward() -> None:
-    torch.manual_seed(4)
-    config = small_config()
-    model = DeepSeekMLA(config).eval()
-    tokens = torch.randint(0, config.vocab_size, (1, 7))
-
-    with torch.no_grad():
-        expected = model(tokens)
-        model.reset_cache()
-        outputs = [
-            model.decode_step(tokens[:, position : position + 1])
-            for position in range(tokens.shape[1])
-        ]
-    actual = torch.cat(outputs, dim=1)
-
-    torch.testing.assert_close(actual, expected, rtol=3e-4, atol=3e-4)

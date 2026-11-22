@@ -5,9 +5,12 @@ from __future__ import annotations
 import argparse
 import contextlib
 import json
+import random
 from dataclasses import asdict
 from pathlib import Path
 from typing import Iterator
+
+import numpy as np
 
 import torch
 import torch.nn.functional as F
@@ -15,7 +18,25 @@ import torch.nn.functional as F
 from src.data.dataloader import create_dataloader
 from src.model import DeepSeekConfig, TinyDeepSeek
 from src.training import MoELoadBalancer
-from src.train import infinite_batches, load_metadata, set_seed
+
+
+def set_seed(seed: int) -> None:
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
+def infinite_batches(loader: torch.utils.data.DataLoader) -> Iterator[tuple[torch.Tensor, torch.Tensor]]:
+    while True:
+        yield from loader
+
+
+def load_metadata(data_dir: str | Path) -> dict:
+    return json.loads(
+        (Path(data_dir) / "metadata.json").read_text(encoding="utf-8")
+    )
 
 
 def build_config(metadata: dict, args: argparse.Namespace) -> DeepSeekConfig:

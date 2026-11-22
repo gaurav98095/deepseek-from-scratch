@@ -1,7 +1,6 @@
 import pytest
 import torch
 
-from src.model.attention import CausalSelfAttention
 from src.model.rope import RotaryEmbedding
 
 
@@ -46,16 +45,3 @@ def test_rope_backward_has_finite_gradients() -> None:
 
     assert x.grad is not None
     assert torch.isfinite(x.grad).all()
-
-
-def test_attention_causality_with_rope() -> None:
-    torch.manual_seed(42)
-    attention = CausalSelfAttention(dim=64, n_heads=4, max_seq_len=32)
-    x = torch.randn(1, 8, 64)
-    original = attention(x)
-
-    changed_x = x.clone()
-    changed_x[:, 5:, :] = 100 * torch.randn_like(changed_x[:, 5:, :])
-    changed = attention(changed_x)
-
-    torch.testing.assert_close(original[:, :5], changed[:, :5])
