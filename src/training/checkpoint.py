@@ -8,6 +8,7 @@ from typing import Any
 
 import torch
 
+from src.model.config import DeepSeekConfig
 from src.model.final_deepseek import TinyDeepSeek
 
 
@@ -57,3 +58,31 @@ def load_checkpoint(
         optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
     model.eval()
     return model, checkpoint
+
+
+def load_inference_checkpoint(
+    path: str | Path,
+    *,
+    device: torch.device | str = "cpu",
+) -> tuple[TinyDeepSeek, dict[str, Any]]:
+    """Load model weights from either model-only or full training checkpoints."""
+    state = torch.load(path, map_location=device, weights_only=False)
+    if not isinstance(state, dict) or "config" not in state:
+        raise ValueError("checkpoint is missing model configuration")
+
+    if "model_state_dict" in state:
+        model_state = state["model_state_dict"]
+    elif "model" in state:
+        model_state = {
+            key.removeprefix("main_model."): value
+            for key, value in state["model"].items()
+            if key.startswith("main_model.")
+        }
+    else:
+        raise ValueError("checkpoint is missing model weights")
+
+    model = TinyDeepSeek(DeepSeekConfig(**state["config"])).to(device)
+    model.load_state_dict(model_state, strict=True)
+    model.eval()
+    model.reset_cache()
+    return model, state

@@ -16,7 +16,7 @@ WARMUP_STEPS ?= 100
 EVAL_INTERVAL ?= 100
 SAVE_INTERVAL ?= 200
 
-.PHONY: help prepare-data test test-module-27 test-module-28 smoke-pretrain run-pretraining resume-pretraining evaluate-checkpoint routing-report plot-training
+.PHONY: help prepare-data test test-module-27 test-module-28 test-generation smoke-pretrain run-pretraining resume-pretraining evaluate-checkpoint routing-report generate plot-training
 
 help:
 	@printf '%s\n' \
@@ -24,11 +24,13 @@ help:
 		'make test               Run the complete test suite' \
 		'make test-module-27     Run Module 27 focused tests' \
 		'make test-module-28     Run Module 28 focused tests' \
+		'make test-generation    Run generation and sampling tests' \
 		'make smoke-pretrain     Run a tiny end-to-end pretraining smoke test' \
 		'make run-pretraining    Start the default 2,000-step training run' \
 		'make resume-pretraining Resume from CHECKPOINT' \
 		'make evaluate-checkpoint Score a checkpoint on fixed validation windows' \
 		'make routing-report     Report expert utilization for a checkpoint' \
+		'make generate           Generate text from a checkpoint' \
 		'make plot-training      Plot the training CSV'
 
 prepare-data:
@@ -42,6 +44,9 @@ test-module-27:
 
 test-module-28:
 	$(PYTEST) src/tests/test_module_28.py -v
+
+test-generation:
+	$(PYTEST) src/tests/test_generation.py -v
 
 smoke-pretrain:
 	$(PYTHON) -m src.smoke_pretrain
@@ -91,6 +96,13 @@ routing-report:
 		--batch-size $(BATCH_SIZE) \
 		--max-windows $(EVAL_WINDOWS) \
 		--routing
+
+generate:
+	$(PYTHON) -m src.generate \
+		--checkpoint $(CHECKPOINT) \
+		--max-new-tokens 50 \
+		--temperature 0.8 \
+		--top-p 0.9
 
 plot-training:
 	$(PYTHON) -m src.plot_training --log $(LOG_PATH) --output $(PLOT_OUTPUT)
