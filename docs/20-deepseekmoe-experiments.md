@@ -279,6 +279,8 @@ production grouped-GEMM or fused-kernel implementation.
 | Specialization | Domain routing distributions | Routing differentiation |
 | FFN benchmark | Median latency and tokens/sec | Execution efficiency |
 
+![A scorecard keeps validation quality, throughput, memory, and routing balance visible together.](assets/module-20-experiment-scorecard.svg)
+
 Run experiments in this order:
 
 1. Verify shapes, causality, gradients, and sparse-versus-dense equivalence.

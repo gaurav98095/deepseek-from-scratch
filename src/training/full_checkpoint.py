@@ -29,6 +29,7 @@ def save_training_checkpoint(
     val_batcher: TokenBatcher,
     run_settings: dict[str, Any],
     metrics: dict[str, Any] | None = None,
+    best_val_loss: float | None = None,
 ) -> None:
     """Save model, optimizer, samplers, RNG state, and run metadata atomically."""
     if step < 0:
@@ -49,6 +50,7 @@ def save_training_checkpoint(
         "cuda_rng": _cuda_rng_state(),
         "run_settings": dict(run_settings),
         "metrics": dict(metrics or {}),
+        "best_val_loss": best_val_loss,
     }
     temporary_path = path.with_name(path.name + ".tmp")
     torch.save(state, temporary_path)

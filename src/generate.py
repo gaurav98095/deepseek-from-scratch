@@ -9,7 +9,8 @@ import torch
 
 from src.data.tokenizer import BPETokenizer
 from src.model.final_deepseek import TinyDeepSeek
-from src.training.checkpoint import load_checkpoint
+from src.sampling import sample_next_token
+from src.training.checkpoint import load_inference_checkpoint
 
 
 def load_checkpoint_model(
@@ -17,22 +18,8 @@ def load_checkpoint_model(
     device: torch.device,
 ) -> tuple[TinyDeepSeek, dict]:
     """Load the final model and checkpoint metadata."""
-    model, checkpoint = load_checkpoint(checkpoint_path, device=device)
+    model, checkpoint = load_inference_checkpoint(checkpoint_path, device=device)
     return model, checkpoint
-
-
-def _sample_next_token(
-    logits: torch.Tensor,
-    *,
-    temperature: float,
-    top_k: int | None,
-) -> torch.Tensor:
-    logits = logits / temperature
-    if top_k is not None:
-        limited_top_k = min(top_k, logits.shape[-1])
-        values, _ = torch.topk(logits, limited_top_k, dim=-1)
-        logits = logits.masked_fill(logits < values[:, [-1]], -torch.inf)
-    return torch.multinomial(torch.softmax(logits, dim=-1), num_samples=1)
 
 
 @torch.no_grad()
@@ -43,7 +30,9 @@ def generate(
     max_new_tokens: int,
     temperature: float = 1.0,
     top_k: int | None = None,
-    eos_id: int | None = None,
+    top_p: float = 1.0,
+    greedy: bool = False,
+    eos_token_id: int | None = None,
 ) -> torch.Tensor:
     """Generate tokens with prompt prefill and one-token cached decoding."""
     if input_ids.ndim != 2:
@@ -52,35 +41,34 @@ def generate(
         raise ValueError("input_ids cannot be empty")
     if max_new_tokens < 0:
         raise ValueError("max_new_tokens cannot be negative")
-    if temperature <= 0:
-        raise ValueError("temperature must be positive")
-    if top_k is not None and top_k <= 0:
-        raise ValueError("top_k must be positive")
+    if input_ids.shape[1] > model.config.max_seq_len:
+        raise ValueError("prompt exceeds maximum context length")
+    if input_ids.shape[1] + max_new_tokens > model.config.max_seq_len:
+        raise ValueError("prompt plus generated tokens exceed maximum context length")
 
     tokens = input_ids.clone()
     if max_new_tokens == 0:
         return tokens
 
-    logits = model.prefill(tokens)
-    next_token = _sample_next_token(
-        logits[:, -1, :],
-        temperature=temperature,
-        top_k=top_k,
-    )
-
-    for step in range(max_new_tokens):
-        tokens = torch.cat([tokens, next_token], dim=1)
-        if eos_id is not None and torch.all(next_token == eos_id):
-            break
-        if step + 1 == max_new_tokens:
-            break
-        logits = model.decode_step(next_token)
-        next_token = _sample_next_token(
-            logits[:, -1, :],
-            temperature=temperature,
-            top_k=top_k,
-        )
-    return tokens
+    try:
+        logits = model.prefill(tokens)
+        for step in range(max_new_tokens):
+            next_token = sample_next_token(
+                logits[:, -1, :],
+                temperature=temperature,
+                top_k=top_k,
+                top_p=top_p,
+                greedy=greedy,
+            )
+            tokens = torch.cat([tokens, next_token], dim=1)
+            if eos_token_id is not None and torch.all(next_token == eos_token_id):
+                break
+            if step + 1 == max_new_tokens:
+                break
+            logits = model.decode_step(next_token)
+        return tokens
+    finally:
+        model.reset_cache()
 
 
 def main() -> None:
@@ -91,6 +79,8 @@ def main() -> None:
     parser.add_argument("--max-new-tokens", type=int, default=50)
     parser.add_argument("--temperature", type=float, default=0.8)
     parser.add_argument("--top-k", type=int, default=None)
+    parser.add_argument("--top-p", type=float, default=1.0)
+    parser.add_argument("--greedy", action="store_true")
     parser.add_argument("--device", default=None)
     args = parser.parse_args()
 
@@ -113,7 +103,9 @@ def main() -> None:
         max_new_tokens=args.max_new_tokens,
         temperature=args.temperature,
         top_k=args.top_k,
-        eos_id=tokenizer.eos_id,
+        top_p=args.top_p,
+        greedy=args.greedy,
+        eos_token_id=tokenizer.eos_id,
     )
     print(tokenizer.decode(generated[0].tolist()))
 

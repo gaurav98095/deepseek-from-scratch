@@ -10,3 +10,4 @@ tokenizers>=0.19
 # Training utilities and tests
 tqdm>=4.66
 pytest>=8.0
+matplotlib>=3.8

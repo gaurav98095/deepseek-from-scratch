@@ -548,6 +548,43 @@ The underlying entry point is `python -m src.pretrain`. It combines random
 memmap batches, BF16-aware accumulation, main-model validation, CSV logging,
 and atomic resumable checkpoints.
 
+## Article 28 — Evaluation and Failure Analysis
+
+Open the executable evaluation notebook:
+
+```bash
+jupyter lab notebooks/28-eval-and-analysis.ipynb
+```
+
+Run the focused fixed-window and routing diagnostics tests:
+
+```bash
+make test-module-28
+```
+
+Score a checkpoint on deterministic validation windows:
+
+```bash
+make evaluate-checkpoint CHECKPOINT=checkpoints/latest.pt
+```
+
+Inspect expert utilization at the same time:
+
+```bash
+make routing-report CHECKPOINT=checkpoints/latest.pt
+```
+
+Plot training main loss, validation loss, and the generalization gap:
+
+```bash
+make plot-training LOG_PATH=training_log.csv
+```
+
+The underlying commands are `python -m src.evaluate_checkpoint` and
+`python -m src.plot_training`. Fixed windows make checkpoint and architecture
+comparisons reproducible; routing reports expose per-layer expert counts,
+maximum-load ratios, and coefficients of variation.
+
 ## Run all current tests
 
 ```bash
