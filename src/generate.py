@@ -1,4 +1,4 @@
-"""Autoregressive text generation for a saved dense-baseline checkpoint."""
+"""Autoregressive generation for a consolidated DeepSeek checkpoint."""
 
 from __future__ import annotations
 
@@ -8,29 +8,36 @@ from pathlib import Path
 import torch
 
 from src.data.tokenizer import BPETokenizer
-from src.model import DeepSeekConfig, DeepSeekSkeleton
+from src.model.final_deepseek import TinyDeepSeek
+from src.training.checkpoint import load_checkpoint
 
 
 def load_checkpoint_model(
     checkpoint_path: str | Path,
     device: torch.device,
-) -> tuple[DeepSeekSkeleton, dict]:
-    """Load a model and checkpoint metadata onto a device."""
-    checkpoint = torch.load(
-        checkpoint_path,
-        map_location=device,
-        weights_only=False,
-    )
-    config = DeepSeekConfig(**checkpoint["config"])
-    model = DeepSeekSkeleton(config).to(device)
-    model.load_state_dict(checkpoint["model_state_dict"])
-    model.eval()
+) -> tuple[TinyDeepSeek, dict]:
+    """Load the final model and checkpoint metadata."""
+    model, checkpoint = load_checkpoint(checkpoint_path, device=device)
     return model, checkpoint
+
+
+def _sample_next_token(
+    logits: torch.Tensor,
+    *,
+    temperature: float,
+    top_k: int | None,
+) -> torch.Tensor:
+    logits = logits / temperature
+    if top_k is not None:
+        limited_top_k = min(top_k, logits.shape[-1])
+        values, _ = torch.topk(logits, limited_top_k, dim=-1)
+        logits = logits.masked_fill(logits < values[:, [-1]], -torch.inf)
+    return torch.multinomial(torch.softmax(logits, dim=-1), num_samples=1)
 
 
 @torch.no_grad()
 def generate(
-    model: DeepSeekSkeleton,
+    model: TinyDeepSeek,
     input_ids: torch.Tensor,
     *,
     max_new_tokens: int,
@@ -38,7 +45,7 @@ def generate(
     top_k: int | None = None,
     eos_id: int | None = None,
 ) -> torch.Tensor:
-    """Generate tokens by repeatedly sampling the final-position logits."""
+    """Generate tokens with prompt prefill and one-token cached decoding."""
     if input_ids.ndim != 2:
         raise ValueError("input_ids must have shape [batch, sequence]")
     if input_ids.shape[1] == 0:
@@ -50,29 +57,35 @@ def generate(
     if top_k is not None and top_k <= 0:
         raise ValueError("top_k must be positive")
 
-    tokens = input_ids
-    for _ in range(max_new_tokens):
-        context = tokens[:, -model.config.max_seq_len :]
-        logits = model(context)[:, -1, :] / temperature
+    tokens = input_ids.clone()
+    if max_new_tokens == 0:
+        return tokens
 
-        if top_k is not None:
-            limited_top_k = min(top_k, logits.shape[-1])
-            values, _ = torch.topk(logits, limited_top_k, dim=-1)
-            logits = logits.masked_fill(logits < values[:, [-1]], -torch.inf)
+    logits = model.prefill(tokens)
+    next_token = _sample_next_token(
+        logits[:, -1, :],
+        temperature=temperature,
+        top_k=top_k,
+    )
 
-        probabilities = torch.softmax(logits, dim=-1)
-        next_token = torch.multinomial(probabilities, num_samples=1)
+    for step in range(max_new_tokens):
         tokens = torch.cat([tokens, next_token], dim=1)
-
         if eos_id is not None and torch.all(next_token == eos_id):
             break
-
+        if step + 1 == max_new_tokens:
+            break
+        logits = model.decode_step(next_token)
+        next_token = _sample_next_token(
+            logits[:, -1, :],
+            temperature=temperature,
+            top_k=top_k,
+        )
     return tokens
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--checkpoint", default="checkpoints/gpt_baseline.pt")
+    parser.add_argument("--checkpoint", default="checkpoints/final_deepseek.pt")
     parser.add_argument("--tokenizer", default=None)
     parser.add_argument("--prompt", default="The history of")
     parser.add_argument("--max-new-tokens", type=int, default=50)

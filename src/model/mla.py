@@ -1,7 +1,5 @@
 """Educational low-rank query and KV projections for MLA."""
 
-import math
-
 import torch
 import torch.nn.functional as F
 from torch import nn
@@ -95,49 +93,6 @@ class KVCompression(nn.Module):
             dim=-1,
         )
         return kv_latent, k_rope, k_content, values
-
-
-class ContentOnlyMLA(nn.Module):
-    """Educational MLA path without positional attention yet."""
-
-    def __init__(self, config: DeepSeekConfig) -> None:
-        super().__init__()
-        self.q_branch = QueryCompression(config)
-        self.kv_branch = KVCompression(config)
-        self.n_heads = config.n_heads
-        self.d_content = config.qk_nope_head_dim
-        self.d_value = config.v_head_dim
-        self.out_proj = nn.Linear(
-            config.n_heads * self.d_value,
-            config.dim,
-            bias=False,
-        )
-        future = torch.triu(
-            torch.ones(config.max_seq_len, config.max_seq_len, dtype=torch.bool),
-            diagonal=1,
-        )
-        self.register_buffer("future_mask", future, persistent=False)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        if x.ndim != 3:
-            raise ValueError("Expected x with shape [batch, sequence, dim]")
-        batch, time, _ = x.shape
-        if time > self.future_mask.size(0):
-            raise ValueError("sequence is longer than max_seq_len")
-
-        q_content, _ = self.q_branch(x)
-        _, _, k_content, values = self.kv_branch(x)
-
-        scores = torch.einsum("bihd,bjhd->bhij", q_content, k_content)
-        scores = scores / math.sqrt(self.d_content)
-        scores = scores.masked_fill(
-            self.future_mask[:time, :time],
-            float("-inf"),
-        )
-        weights = F.softmax(scores.float(), dim=-1).to(values.dtype)
-        attended = torch.einsum("bhij,bjhd->bihd", weights, values)
-        attended = attended.reshape(batch, time, self.n_heads * self.d_value)
-        return self.out_proj(attended)
 
 
 class MLA(nn.Module):

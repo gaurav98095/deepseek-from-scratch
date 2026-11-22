@@ -1,7 +1,7 @@
 import torch
 
 from src.model import DeepSeekConfig
-from src.model.mla import ContentOnlyMLA, KVCompression, MLA, QueryCompression
+from src.model.mla import KVCompression, MLA, QueryCompression
 
 
 def small_config() -> DeepSeekConfig:
@@ -38,30 +38,6 @@ def test_kv_shapes() -> None:
     assert k_rope.shape == (2, 16, 4)
     assert k_content.shape == (2, 16, 4, 8)
     assert values.shape == (2, 16, 4, 8)
-
-
-def test_content_only_mla_shape_and_backward() -> None:
-    config = small_config()
-    model = ContentOnlyMLA(config)
-    output = model(torch.randn(2, 16, 64, requires_grad=True))
-    output.square().mean().backward()
-
-    assert output.shape == (2, 16, 64)
-    assert model.q_branch.q_down.weight.grad is not None
-    assert model.kv_branch.kv_down.weight.grad is not None
-
-
-def test_content_only_mla_is_causal() -> None:
-    torch.manual_seed(0)
-    config = small_config()
-    model = ContentOnlyMLA(config)
-    prefix = torch.randn(1, 4, 64)
-    first = model(torch.cat([prefix, torch.zeros(1, 2, 64)], dim=1))
-
-    changed = torch.cat([prefix, torch.randn(1, 2, 64)], dim=1)
-    second = model(changed)
-
-    torch.testing.assert_close(first[:, :4], second[:, :4])
 
 
 def test_mla_shape_and_backward() -> None:
