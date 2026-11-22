@@ -455,6 +455,31 @@ The validation suite covers structure, shapes, causality, sparse MoE
 equivalence, gradient paths, balancing buffers, MTP alignment and leakage,
 cached decoding, checkpoint integrity, and BF16 stability when supported.
 
+## Article 25 — Training Loss, AdamW, and Learning-Rate Scheduling
+
+Open the executable notebook:
+
+```bash
+jupyter lab notebooks/25-training-deepseek-loss-lr.ipynb
+```
+
+Run the focused optimizer and training-step tests:
+
+```bash
+python -m pytest src/tests/test_training_optimizer.py -v
+```
+
+Run the self-contained FP32 optimization smoke test:
+
+```bash
+python -m src.smoke_optimizer
+```
+
+The training helpers are `src/training/optimizer.py`,
+`src/training/scheduler.py`, and `src/training/train_step.py`. The step
+combines the main and MTP losses, clips gradients, updates AdamW parameters,
+and then updates all recorded expert-balancing biases.
+
 ## Run all current tests
 
 ```bash
