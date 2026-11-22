@@ -10,9 +10,11 @@ import numpy as np
 
 try:
     from .tokenizer import BPETokenizer
+    from .tokenizer_identity import file_sha256
 except ImportError:
     # Supports running this file directly from a debugger or from src/data/.
     from tokenizer import BPETokenizer
+    from tokenizer_identity import file_sha256
 
 
 def clean_document(
@@ -123,7 +125,8 @@ def prepare_dataset(
 
     tokenizer = BPETokenizer()
     tokenizer.train(tokenizer_texts, vocab_size=tokenizer_vocab_size)
-    tokenizer.save(output_dir / "tokenizer.json")
+    tokenizer_path = output_dir / "tokenizer.json"
+    tokenizer.save(tokenizer_path)
 
     token_counts = {"train": 0, "val": 0}
     document_counts = {"train": 0, "val": 0}
@@ -159,6 +162,8 @@ def prepare_dataset(
         "source": dataset_name,
         "config": dataset_config,
         "tokenizer_vocab_size": tokenizer.vocab_size,
+        "tokenizer_sha256": file_sha256(tokenizer_path),
+        "tokenizer_path": tokenizer_path.name,
         "eos_id": tokenizer.eos_id,
         "dtype": storage_dtype.str,
         "tokens": token_counts,

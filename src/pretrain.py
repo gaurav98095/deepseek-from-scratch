@@ -13,12 +13,14 @@ import numpy as np
 import torch
 
 from .data.token_batches import TokenBatcher
+from .data.tokenizer_identity import file_sha256
 from .model import DeepSeekConfig, DeepSeekWithMTP
 from .training import (
+    FixedTokenWindows,
     MoELoadBalancer,
     create_optimizer,
     efficient_train_step,
-    evaluate_main_model,
+    evaluate_fixed_windows,
     load_training_checkpoint,
     save_training_checkpoint,
 )
@@ -36,10 +38,14 @@ def set_seed(seed: int) -> None:
 
 
 def load_metadata(data_dir: str | Path) -> dict[str, Any]:
-    path = Path(data_dir) / "metadata.json"
+    data_dir = Path(data_dir)
+    path = data_dir / "metadata.json"
     metadata = json.loads(path.read_text(encoding="utf-8"))
     if "tokenizer_vocab_size" not in metadata or "dtype" not in metadata:
         raise ValueError("metadata must contain tokenizer_vocab_size and dtype")
+    tokenizer_path = data_dir / metadata.get("tokenizer_path", "tokenizer.json")
+    if tokenizer_path.is_file():
+        metadata.setdefault("tokenizer_sha256", file_sha256(tokenizer_path))
     return metadata
 
 
@@ -79,7 +85,8 @@ def run_settings(args: argparse.Namespace) -> dict[str, Any]:
         "mtp_weight": args.mtp_weight,
         "gamma": args.gamma,
         "eval_interval": args.eval_interval,
-        "eval_batches": args.eval_batches,
+        "eval_windows": args.eval_windows,
+        "tokenizer_sha256": args.tokenizer_sha256,
         "dtype": args.dtype,
         "bf16": args.bf16,
         "activation_checkpointing": args.activation_checkpointing,
@@ -114,7 +121,7 @@ def run_pretraining(args: argparse.Namespace) -> dict[str, Any]:
         raise ValueError("steps, batch_size, and accum_steps must be positive")
     if (
         args.eval_interval <= 0
-        or args.eval_batches <= 0
+        or args.eval_windows <= 0
         or args.save_interval <= 0
     ):
         raise ValueError("evaluation and checkpoint intervals must be positive")
@@ -123,6 +130,7 @@ def run_pretraining(args: argparse.Namespace) -> dict[str, Any]:
     data_dir = Path(args.data_dir)
     metadata = load_metadata(data_dir)
     dtype = args.dtype or metadata["dtype"]
+    args.dtype = dtype
     config = build_config(metadata, args)
     device = torch.device(
         args.device or ("cuda" if torch.cuda.is_available() else "cpu")
@@ -146,6 +154,12 @@ def run_pretraining(args: argparse.Namespace) -> dict[str, Any]:
         dtype=dtype,
         seed=args.seed + 1,
     )
+    val_windows = FixedTokenWindows(
+        data_dir / "val.bin",
+        seq_len=args.seq_len,
+        dtype=dtype,
+    )
+    args.tokenizer_sha256 = metadata.get("tokenizer_sha256")
     settings = run_settings(args)
     start_step = 0
 
@@ -195,11 +209,11 @@ def run_pretraining(args: argparse.Namespace) -> dict[str, Any]:
             validation: dict[str, Any] = {}
             is_best = False
             if step % args.eval_interval == 0 or step == args.steps:
-                validation = evaluate_main_model(
+                validation = evaluate_fixed_windows(
                     model.main_model,
-                    val_batcher,
+                    val_windows,
                     batch_size=args.batch_size,
-                    num_batches=args.eval_batches,
+                    max_windows=args.eval_windows,
                 )
                 # Evaluation also traverses MoE routers, but must not affect
                 # the next training-step balancing update.
@@ -268,7 +282,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seq-len", type=int, default=128)
     parser.add_argument("--warmup-steps", type=int, default=100)
     parser.add_argument("--eval-interval", type=int, default=100)
-    parser.add_argument("--eval-batches", type=int, default=20)
+    parser.add_argument(
+        "--eval-windows",
+        "--eval-batches",
+        dest="eval_windows",
+        type=int,
+        default=20,
+    )
     parser.add_argument("--save-interval", type=int, default=200)
     parser.add_argument("--max-lr", type=float, default=3e-4)
     parser.add_argument("--min-lr", type=float, default=3e-5)

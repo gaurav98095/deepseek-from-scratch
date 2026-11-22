@@ -8,6 +8,7 @@ from pathlib import Path
 import torch
 
 from src.data.tokenizer import BPETokenizer
+from src.data.tokenizer_identity import verify_file_sha256
 from src.model.final_deepseek import TinyDeepSeek
 from src.sampling import sample_next_token
 from src.training.checkpoint import load_inference_checkpoint
@@ -73,7 +74,7 @@ def generate(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--checkpoint", default="checkpoints/final_deepseek.pt")
+    parser.add_argument("--checkpoint", default="checkpoints/latest.pt")
     parser.add_argument("--tokenizer", default=None)
     parser.add_argument("--prompt", default="The history of")
     parser.add_argument("--max-new-tokens", type=int, default=50)
@@ -92,6 +93,13 @@ def main() -> None:
         "tokenizer_path", "data/processed/tokenizer.json"
     )
     tokenizer = BPETokenizer.load(tokenizer_path)
+    expected_tokenizer_hash = checkpoint.get("tokenizer_sha256")
+    if expected_tokenizer_hash is None:
+        run_settings = checkpoint.get("run_settings")
+        if isinstance(run_settings, dict):
+            expected_tokenizer_hash = run_settings.get("tokenizer_sha256")
+    if expected_tokenizer_hash:
+        verify_file_sha256(tokenizer_path, expected_tokenizer_hash)
     prompt_ids = tokenizer.encode(args.prompt)
     if not prompt_ids:
         raise ValueError("prompt produced no tokens")

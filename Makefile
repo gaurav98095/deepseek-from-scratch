@@ -16,15 +16,17 @@ WARMUP_STEPS ?= 100
 EVAL_INTERVAL ?= 100
 SAVE_INTERVAL ?= 200
 
-.PHONY: help prepare-data test test-module-27 test-module-28 test-generation smoke-pretrain run-pretraining resume-pretraining evaluate-checkpoint routing-report generate plot-training
+.PHONY: help prepare-data validate-data test test-module-27 test-module-28 test-generation test-release smoke-pretrain run-pretraining resume-pretraining evaluate-checkpoint routing-report generate plot-training
 
 help:
 	@printf '%s\n' \
 		'make prepare-data       Build data/processed/train.bin and val.bin' \
+		'make validate-data      Validate token files and metadata' \
 		'make test               Run the complete test suite' \
 		'make test-module-27     Run Module 27 focused tests' \
 		'make test-module-28     Run Module 28 focused tests' \
 		'make test-generation    Run generation and sampling tests' \
+		'make test-release       Run the end-to-end release test' \
 		'make smoke-pretrain     Run a tiny end-to-end pretraining smoke test' \
 		'make run-pretraining    Start the default 2,000-step training run' \
 		'make resume-pretraining Resume from CHECKPOINT' \
@@ -35,6 +37,9 @@ help:
 
 prepare-data:
 	$(PYTHON) -m src.data.prepare_data --output-dir $(DATA_DIR)
+
+validate-data:
+	$(PYTHON) -m src.data.validate_tokens --data-dir $(DATA_DIR)
 
 test:
 	$(PYTEST) src/tests -v
@@ -47,6 +52,9 @@ test-module-28:
 
 test-generation:
 	$(PYTEST) src/tests/test_generation.py -v
+
+test-release:
+	$(PYTEST) src/tests/test_release.py -v
 
 smoke-pretrain:
 	$(PYTHON) -m src.smoke_pretrain
@@ -63,6 +71,7 @@ run-pretraining:
 		--seq-len $(SEQ_LEN) \
 		--warmup-steps $(WARMUP_STEPS) \
 		--eval-interval $(EVAL_INTERVAL) \
+		--eval-windows $(EVAL_WINDOWS) \
 		--save-interval $(SAVE_INTERVAL)
 
 resume-pretraining:
@@ -78,6 +87,7 @@ resume-pretraining:
 		--seq-len $(SEQ_LEN) \
 		--warmup-steps $(WARMUP_STEPS) \
 		--eval-interval $(EVAL_INTERVAL) \
+		--eval-windows $(EVAL_WINDOWS) \
 		--save-interval $(SAVE_INTERVAL)
 
 evaluate-checkpoint:

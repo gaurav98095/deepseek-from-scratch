@@ -40,7 +40,7 @@ def main() -> None:
             seq_len=8,
             warmup_steps=1,
             eval_interval=1,
-            eval_batches=1,
+            eval_windows=1,
             save_interval=1,
             max_lr=3e-4,
             min_lr=3e-5,
@@ -67,6 +67,7 @@ def main() -> None:
             n_routed_experts=4,
             n_shared_experts=1,
             n_activated_experts=2,
+            tokenizer_sha256=None,
         )
         result = run_pretraining(args)
         if result["step"] != 2 or not checkpoint.is_file():
