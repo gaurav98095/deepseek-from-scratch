@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="350" viewBox="0 0 980 350" role="img" aria-labelledby="title desc">
+  <title id="title">DeepSeek optimization step</title>
+  <desc id="desc">The training step sets the learning rate, computes combined main and MTP loss, backpropagates, clips gradients, updates AdamW parameters, and updates router balancing biases.</desc>
+  <rect width="980" height="350" rx="18" fill="#0f172a"/>
+  <text x="42" y="42" fill="#f8fafc" font-family="Arial, sans-serif" font-size="24" font-weight="700">One correct optimization step</text>
+  <text x="42" y="68" fill="#94a3b8" font-family="Arial, sans-serif" font-size="15">Gradient updates and routing-feedback updates happen in separate stages</text>
+  <g font-family="Arial, sans-serif" text-anchor="middle">
+    <rect x="35" y="120" width="145" height="74" rx="10" fill="#172554" stroke="#60a5fa" stroke-width="2"/><text x="107" y="151" fill="#dbeafe" font-size="16" font-weight="700">Set LR</text><text x="107" y="175" fill="#bfdbfe" font-size="13">warmup / cosine</text>
+    <rect x="205" y="120" width="145" height="74" rx="10" fill="#164e63" stroke="#22d3ee" stroke-width="2"/><text x="277" y="151" fill="#cffafe" font-size="16" font-weight="700">Forward</text><text x="277" y="175" fill="#a5f3fc" font-size="13">main + MTP loss</text>
+    <rect x="375" y="120" width="145" height="74" rx="10" fill="#422006" stroke="#fbbf24" stroke-width="2"/><text x="447" y="151" fill="#fef3c7" font-size="16" font-weight="700">Backward</text><text x="447" y="175" fill="#fde68a" font-size="13">combined gradients</text>
+    <rect x="545" y="120" width="145" height="74" rx="10" fill="#3f172e" stroke="#f472b6" stroke-width="2"/><text x="617" y="151" fill="#fce7f3" font-size="16" font-weight="700">Clip</text><text x="617" y="175" fill="#fbcfe8" font-size="13">global norm ≤ 1</text>
+    <rect x="715" y="120" width="230" height="74" rx="10" fill="#052e16" stroke="#4ade80" stroke-width="2"/><text x="830" y="151" fill="#dcfce7" font-size="16" font-weight="700">AdamW → bias update</text><text x="830" y="175" fill="#bbf7d0" font-size="13">weights first, routing feedback second</text>
+  </g>
+  <g stroke="#94a3b8" stroke-width="2" fill="none"><path d="M180 157 H205"/><path d="M350 157 H375"/><path d="M520 157 H545"/><path d="M690 157 H715"/></g>
+  <g fill="#94a3b8"><path d="M200 157 l-9 -5 v10z"/><path d="M370 157 l-9 -5 v10z"/><path d="M540 157 l-9 -5 v10z"/><path d="M710 157 l-9 -5 v10z"/></g>
+  <path d="M90 276 C180 270 240 265 330 280 S510 305 600 268 S780 240 900 250" fill="none" stroke="#38bdf8" stroke-width="4"/>
+  <line x1="90" y1="300" x2="900" y2="300" stroke="#334155"/>
+  <text x="90" y="326" fill="#94a3b8" font-family="Arial, sans-serif" font-size="13">step 1</text><text x="850" y="326" fill="#94a3b8" font-family="Arial, sans-serif" font-size="13">final step</text><text x="480" y="326" fill="#7dd3fc" font-family="Arial, sans-serif" font-size="13">warmup → peak → cosine decay → floor</text>
+</svg>
